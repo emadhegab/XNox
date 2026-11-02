@@ -383,32 +383,6 @@ final class SimulatorViewModel: ObservableObject {
         }
     }
 
-    func removeSelectedMedia(at offsets: IndexSet) {
-        for index in offsets.sorted(by: >) {
-            selectedMediaURLs.remove(at: index)
-        }
-    }
-
-    private func performSelectedAction(
-        commandDescription: String,
-        successMessage: String,
-        action: @escaping (_ udid: String) async throws -> Void
-    ) async {
-        guard !isPerformingAction else { return }
-
-        guard let udid = selectedSimulatorUDID else {
-            statusMessage = SimulatorControlError.noSimulatorSelected.localizedDescription
-            return
-        }
-
-        await performAction(
-            udid: udid,
-            commandDescription: commandDescription,
-            successMessage: successMessage,
-            action: action
-        )
-    }
-
     private func performAction(
         udid: String,
         commandDescription: String,
