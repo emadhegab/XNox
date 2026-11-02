@@ -49,15 +49,12 @@ enum CommandEvent: Sendable {
 
 enum CommandRunnerError: LocalizedError {
     case executableNotAllowed(String)
-    case privilegesUnavailable
     case notImplemented
 
     var errorDescription: String? {
         switch self {
         case let .executableNotAllowed(executable):
             return "Command is not in allowlist: \(executable)"
-        case .privilegesUnavailable:
-            return "Privileged execution is not wired in this skeleton yet."
         case .notImplemented:
             return "Command execution is skeleton-only at this stage."
         }
