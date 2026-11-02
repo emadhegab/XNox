@@ -109,18 +109,8 @@ actor SimulatorControlService {
             }
         }
 
-        // Some stale or broken simulators cannot be erased but can still be removed.
-        do {
-            _ = try runSimctl(["delete", udid], timeoutSeconds: 120)
-            return
-        } catch {
-            let eraseMessage = shortErrorMessage(from: eraseError ?? error)
-            let deleteMessage = shortErrorMessage(from: error)
-            throw SimulatorControlError.commandFailed(
-                command: "xcrun simctl erase \(udid)",
-                message: "Erase failed (\(eraseMessage)). Delete fallback failed (\(deleteMessage))."
-            )
-        }
+        // Surface the failure. Never fall back to `simctl delete`: erase must not remove the device.
+        throw eraseError ?? SimulatorControlError.invalidInput("Erase failed.")
     }
 
     func deleteSimulator(udid: String) throws {

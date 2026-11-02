@@ -174,18 +174,12 @@ struct SimulatorCatalog: Sendable {
 }
 
 enum SimulatorControlError: LocalizedError {
-    case commandFailed(command: String, message: String)
     case invalidJSON(String)
     case noSimulatorSelected
     case invalidInput(String)
 
     var errorDescription: String? {
         switch self {
-        case let .commandFailed(command, message):
-            if message.isEmpty {
-                return "Command failed: \(command)"
-            }
-            return "Command failed: \(command)\n\(message)"
         case let .invalidJSON(message):
             return "Unable to parse simulator response: \(message)"
         case .noSimulatorSelected:
