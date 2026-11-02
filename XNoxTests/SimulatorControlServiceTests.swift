@@ -71,6 +71,7 @@ struct SimulatorControlServiceTests {
         try await makeService(runner).bootSimulator(udid: udid)
         #expect(runner.simctlCalls.first == ["boot", udid])
         #expect(runner.simctlCalls.contains(["bootstatus", udid, "-b"]))
+        #expect(runner.calls.contains { $0.executable == "/usr/bin/open" && $0.arguments.contains(udid) })
     }
 
     @Test func bootPropagatesOtherFailures() async {
