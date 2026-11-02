@@ -38,21 +38,4 @@ final class XNoxUITests: XCTestCase {
             XCUIApplication().launch()
         }
     }
-
-    @MainActor
-    func testSigningSetupSheetOpensFromAddProject() throws {
-        let app = XCUIApplication()
-        app.launch()
-
-        let signingItem = app.staticTexts["Signing"]
-        XCTAssertTrue(signingItem.waitForExistence(timeout: 5))
-        signingItem.click()
-
-        let addProjectButton = app.buttons["signing.addProject"]
-        XCTAssertTrue(addProjectButton.waitForExistence(timeout: 5))
-        addProjectButton.click()
-
-        XCTAssertTrue(app.staticTexts["Project Signing Setup"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["signing.setup.path.browse"].exists)
-    }
 }

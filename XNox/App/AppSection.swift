@@ -4,8 +4,6 @@ enum AppSection: String, CaseIterable, Hashable {
     case dashboard
     case simulator
     case storage
-    case signing
-    case devices
     case history
     case settings
 
@@ -17,10 +15,6 @@ enum AppSection: String, CaseIterable, Hashable {
             return "Simulator"
         case .storage:
             return "Storage"
-        case .signing:
-            return "Signing"
-        case .devices:
-            return "Devices"
         case .history:
             return "History"
         case .settings:
@@ -36,10 +30,6 @@ enum AppSection: String, CaseIterable, Hashable {
             return "iphone.gen3"
         case .storage:
             return "externaldrive"
-        case .signing:
-            return "checkmark.shield"
-        case .devices:
-            return "iphone"
         case .history:
             return "clock.arrow.trianglehead.counterclockwise.rotate.90"
         case .settings:

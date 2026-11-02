@@ -15,7 +15,7 @@ run: build        ## Build and open the app
 install: build    ## Build and copy to /Applications
 	ditto "$(APP)" /Applications/XNox.app
 
-test:             ## Run unit tests
+test:             ## Run unit and UI tests
 	$(XCB) -configuration Debug -destination 'platform=macOS' test
 
 clean:

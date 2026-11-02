@@ -2,8 +2,6 @@
 
 A free, open-source macOS app for iOS developers. It finds the disk space Xcode wastes, cleans it safely, and manages your iOS simulators.
 
-> **Status:** being rebuilt as open source. Some old paid features (signing and device registration) are still in the code and are being removed. See the roadmap in the project notes.
-
 ## Features
 
 - **Storage** — scans the folders Xcode fills up, shows their size, and lets you browse and delete what you pick:
@@ -36,7 +34,7 @@ Other commands:
 |---|---|
 | `make build` | Build the Release app into `./build` |
 | `make run` | Build and open the app without installing |
-| `make test` | Run the unit tests |
+| `make test` | Run the unit and UI tests |
 | `make clean` | Delete `./build` |
 
 To update, pull and install again:
