@@ -13,6 +13,10 @@ A free, open-source macOS app for iOS developers. It finds the disk space Xcode 
 - **Simulators** — create, boot, erase, rename, and delete simulators; set locale and status bar; open deep links; add photos and videos.
 - **History** — a log of every delete and erase you ran, with the space freed.
 
+## Screenshot
+
+<!-- screenshot: add docs/screenshot.png -->
+
 ## Requirements
 
 - macOS 14 (Sonoma) or later
@@ -51,7 +55,7 @@ XNox needs to read and delete files under `~/Library/Developer` and to run `xcru
 
 ## Privacy
 
-XNox makes no network calls after the rebuild is finished. No analytics, no accounts, no license checks.
+XNox makes no network calls. No analytics, no accounts, no license checks.
 
 ## Documentation
 
@@ -61,7 +65,7 @@ XNox makes no network calls after the rebuild is finished. No analytics, no acco
 
 ## Contributing
 
-Open `XNox.xcodeproj` in Xcode, or use `make build` / `make test`. To sign with your own team, copy `Local.xcconfig.example` to `Local.xcconfig`. Pull requests are welcome; use [Conventional Commits](https://www.conventionalcommits.org) for commit messages.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md). In short: run `make test` before a pull request, and use [Conventional Commits](https://www.conventionalcommits.org).
 
 ## License
 
