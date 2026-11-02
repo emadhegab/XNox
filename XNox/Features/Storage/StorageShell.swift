@@ -26,7 +26,9 @@ enum StorageShell {
         return sizeInKB * 1_024
     }
 
-    static func removeItem(at url: URL) throws {
-        _ = try runner.run("/bin/rm", ["-rf", "--", url.path], timeout: commandTimeout)
+    /// The only delete entry point: `deletionGuard` must approve `url`, and the resolved path is what gets removed.
+    static func removeItem(at url: URL, guard deletionGuard: DeletionGuard) throws {
+        let safeURL = try deletionGuard.validate(url)
+        _ = try runner.run("/bin/rm", ["-rf", "--", safeURL.path], timeout: commandTimeout)
     }
 }

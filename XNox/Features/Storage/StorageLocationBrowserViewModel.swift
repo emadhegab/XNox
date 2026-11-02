@@ -279,24 +279,15 @@ final class StorageLocationBrowserViewModel: ObservableObject {
             summary: "Deleting \(selectedItems.count) item(s) from \(locationTitle)."
         )
 
-        let basePath = self.basePath
+        let deletionGuard = DeletionGuard.storage(home: FileManager.default.homeDirectoryForCurrentUser)
 
         do {
             let deletionResult = try await Task.detached(priority: .userInitiated) { () throws -> Int in
-                let rootPath = URL(fileURLWithPath: basePath, isDirectory: true).standardizedFileURL.path
-                let rootPrefix = rootPath.hasSuffix("/") ? rootPath : "\(rootPath)/"
-
                 var deletedCount = 0
 
                 for (index, item) in selectedItems.enumerated() {
                     let itemURL = URL(fileURLWithPath: item.absolutePath)
-                    let standardizedPath = itemURL.standardizedFileURL.path
-
-                    guard standardizedPath.hasPrefix(rootPrefix) else {
-                        continue
-                    }
-
-                    try StorageShell.removeItem(at: itemURL)
+                    try StorageShell.removeItem(at: itemURL, guard: deletionGuard)
                     deletedCount += 1
                     Task { @MainActor [weak self] in
                         self?.deletionProgress = StorageBrowserDeletionProgress(
