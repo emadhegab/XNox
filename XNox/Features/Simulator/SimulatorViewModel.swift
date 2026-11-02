@@ -4,14 +4,6 @@ import Foundation
 @MainActor
 final class SimulatorViewModel: ObservableObject {
     static let shared = SimulatorViewModel()
-    nonisolated private static let localeIdentifierKey = "simulator.localeIdentifier"
-    nonisolated private static let urlToOpenKey = "simulator.urlToOpen"
-    nonisolated private static let statusBarTimeKey = "simulator.statusBar.time"
-    nonisolated private static let statusBarNetworkKey = "simulator.statusBar.network"
-    nonisolated private static let statusBarWifiBarsKey = "simulator.statusBar.wifiBars"
-    nonisolated private static let statusBarCellularBarsKey = "simulator.statusBar.cellularBars"
-    nonisolated private static let statusBarBatteryStateKey = "simulator.statusBar.batteryState"
-    nonisolated private static let statusBarBatteryLevelKey = "simulator.statusBar.batteryLevel"
 
     @Published var simulators: [SimulatorDevice] = []
     @Published var runtimes: [SimulatorRuntime] = []
@@ -50,7 +42,7 @@ final class SimulatorViewModel: ObservableObject {
 
     private let service: SimulatorControlService
     private let historyRecorder: any OperationHistoryRecording
-    private var cancellables: Set<AnyCancellable> = []
+    var cancellables: Set<AnyCancellable> = []
 
     init(
         service: SimulatorControlService = SimulatorControlService(),
@@ -493,66 +485,5 @@ final class SimulatorViewModel: ObservableObject {
         deviceTypes.first(where: { $0.name.localizedCaseInsensitiveContains("iPhone") })?.identifier
             ?? deviceTypes.first?.identifier
             ?? ""
-    }
-
-    private func loadPersistedPreferences() {
-        let defaults = UserDefaults.standard
-        localeIdentifier = defaults.string(forKey: Self.localeIdentifierKey) ?? localeIdentifier
-        urlToOpen = defaults.string(forKey: Self.urlToOpenKey) ?? urlToOpen
-        statusBarTime = defaults.string(forKey: Self.statusBarTimeKey) ?? statusBarTime
-
-        if let rawNetwork = defaults.string(forKey: Self.statusBarNetworkKey),
-           let network = SimulatorStatusBarNetwork(rawValue: rawNetwork) {
-            statusBarNetwork = network
-        }
-
-        if defaults.object(forKey: Self.statusBarWifiBarsKey) != nil {
-            statusBarWifiBars = defaults.integer(forKey: Self.statusBarWifiBarsKey)
-        }
-        if defaults.object(forKey: Self.statusBarCellularBarsKey) != nil {
-            statusBarCellularBars = defaults.integer(forKey: Self.statusBarCellularBarsKey)
-        }
-
-        if let rawBatteryState = defaults.string(forKey: Self.statusBarBatteryStateKey),
-           let batteryState = SimulatorStatusBarBatteryState(rawValue: rawBatteryState) {
-            statusBarBatteryState = batteryState
-        }
-        if defaults.object(forKey: Self.statusBarBatteryLevelKey) != nil {
-            statusBarBatteryLevel = defaults.integer(forKey: Self.statusBarBatteryLevelKey)
-        }
-    }
-
-    private func configurePreferencePersistence() {
-        $localeIdentifier
-            .sink { UserDefaults.standard.set($0, forKey: Self.localeIdentifierKey) }
-            .store(in: &cancellables)
-
-        $urlToOpen
-            .sink { UserDefaults.standard.set($0, forKey: Self.urlToOpenKey) }
-            .store(in: &cancellables)
-
-        $statusBarTime
-            .sink { UserDefaults.standard.set($0, forKey: Self.statusBarTimeKey) }
-            .store(in: &cancellables)
-
-        $statusBarNetwork
-            .sink { UserDefaults.standard.set($0.rawValue, forKey: Self.statusBarNetworkKey) }
-            .store(in: &cancellables)
-
-        $statusBarWifiBars
-            .sink { UserDefaults.standard.set($0, forKey: Self.statusBarWifiBarsKey) }
-            .store(in: &cancellables)
-
-        $statusBarCellularBars
-            .sink { UserDefaults.standard.set($0, forKey: Self.statusBarCellularBarsKey) }
-            .store(in: &cancellables)
-
-        $statusBarBatteryState
-            .sink { UserDefaults.standard.set($0.rawValue, forKey: Self.statusBarBatteryStateKey) }
-            .store(in: &cancellables)
-
-        $statusBarBatteryLevel
-            .sink { UserDefaults.standard.set($0, forKey: Self.statusBarBatteryLevelKey) }
-            .store(in: &cancellables)
     }
 }
