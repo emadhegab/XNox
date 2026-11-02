@@ -110,6 +110,31 @@ struct DeletionGuardTests {
         #expect(f.outsideSurvives)
     }
 
+    /// On case-insensitive APFS, symlink resolution returns the on-disk case, so a wrong-case child
+    /// is approved only as the same real path inside the root. The root itself in the wrong case must never pass.
+    @Test func wrongCasePathsNeverEscapeOrHitTheRoot() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let xcode = f.root.deletingLastPathComponent()
+        #expect(try f.guardian.validate(f.root.appendingPathComponent("x")).path == resolved(f.root) + "/x")
+        #expect(throws: DeletionGuardError.self) { try f.guardian.validate(xcode.appendingPathComponent("deriveddata")) }
+        #expect(throws: DeletionGuardError.self) { try f.guardian.validate(xcode.appendingPathComponent("DERIVEDDATA")) }
+        if let approved = try? f.guardian.validate(xcode.appendingPathComponent("deriveddata/x")) {
+            #expect(approved.path == resolved(f.root) + "/x")
+        }
+    }
+
+    @Test func trailingSlashChildIsApprovedWithoutTrailingSlashAndRemoved() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        let dir = f.root.appendingPathComponent("App-abc", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let withSlash = URL(fileURLWithPath: dir.path + "/")
+
+        #expect(try f.guardian.validate(withSlash).path == resolved(f.root) + "/App-abc")
+        try StorageShell.removeItem(at: withSlash, guard: f.guardian)
+        #expect(!FileManager.default.fileExists(atPath: dir.path))
+        #expect(f.outsideSurvives)
+    }
+
     @Test func runnerRejectsNonAllowlistedExecutable() {
         #expect(throws: CommandError.self) {
             try ProcessCommandRunner().run("/bin/echo", ["hi"], timeout: 5)
