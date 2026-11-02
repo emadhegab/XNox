@@ -1,6 +1,41 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+enum SimulatorActionCategory: String, CaseIterable, Identifiable {
+    case core
+    case localeAndLinks
+    case media
+    case statusBar
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .core:
+            return "Core"
+        case .localeAndLinks:
+            return "Locale / Links"
+        case .media:
+            return "Media"
+        case .statusBar:
+            return "Status Bar"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .core:
+            return "switch.2"
+        case .localeAndLinks:
+            return "link"
+        case .media:
+            return "photo.on.rectangle.angled"
+        case .statusBar:
+            return "wifi"
+        }
+    }
+}
+
 struct SimulatorView: View {
     @ObservedObject private var viewModel = SimulatorViewModel.shared
     @State private var isMediaPickerPresented = false
