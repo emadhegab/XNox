@@ -1,22 +1,25 @@
 import Foundation
 
-enum StorageShellError: LocalizedError {
-    case commandFailed(command: String, message: String)
+nonisolated enum StorageShellError: LocalizedError {
     case invalidOutput(command: String, output: String)
 
     var errorDescription: String? {
         switch self {
-        case let .commandFailed(command, message):
-            return "\(command) failed: \(message)"
         case let .invalidOutput(command, output):
             return "\(command) returned unexpected output: \(output)"
         }
     }
 }
 
-enum StorageShell {
+nonisolated enum StorageShell {
+    private static let runner = ProcessCommandRunner()
+    /// du timeout.
+    private static let commandTimeout: TimeInterval = 300
+    /// rm of one huge child (simulator runtimes, DerivedData) can run very long.
+    private static let removeTimeout: TimeInterval = 3600
+
     static func allocatedSize(at url: URL) throws -> Int64 {
-        let output = try run(executablePath: "/usr/bin/du", arguments: ["-sk", url.path])
+        let output = try runner.run("/usr/bin/du", ["-sk", url.path], timeout: commandTimeout)
         let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let firstField = trimmed.split(whereSeparator: \.isWhitespace).first,
               let sizeInKB = Int64(firstField) else {
@@ -25,37 +28,9 @@ enum StorageShell {
         return sizeInKB * 1_024
     }
 
-    static func removeItem(at url: URL) throws {
-        _ = try run(executablePath: "/bin/rm", arguments: ["-rf", "--", url.path])
-    }
-
-    @discardableResult
-    static func run(executablePath: String, arguments: [String]) throws -> String {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: executablePath)
-        process.arguments = arguments
-
-        let stdoutPipe = Pipe()
-        let stderrPipe = Pipe()
-        process.standardOutput = stdoutPipe
-        process.standardError = stderrPipe
-
-        try process.run()
-        process.waitUntilExit()
-
-        let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-        let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-        let stdout = String(decoding: stdoutData, as: UTF8.self)
-        let stderr = String(decoding: stderrData, as: UTF8.self)
-
-        guard process.terminationStatus == 0 else {
-            let message = stderr.trimmingCharacters(in: .whitespacesAndNewlines)
-            throw StorageShellError.commandFailed(
-                command: ([executablePath] + arguments).joined(separator: " "),
-                message: message.isEmpty ? "exit code \(process.terminationStatus)" : message
-            )
-        }
-
-        return stdout
+    /// The only delete entry point: `deletionGuard` must approve `url`, and the resolved path is what gets removed.
+    static func removeItem(at url: URL, guard deletionGuard: DeletionGuard) throws {
+        let safeURL = try deletionGuard.validate(url)
+        _ = try runner.run("/bin/rm", ["-rf", "--", safeURL.path], timeout: removeTimeout)
     }
 }

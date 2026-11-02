@@ -359,12 +359,13 @@ final class StorageViewModel: ObservableObject {
         )
 
         let homeDirectory = self.homeDirectory
+        let deletionGuard = DeletionGuard.storage(home: homeDirectory)
 
         do {
             let reclaimedBytes = try await Task.detached(priority: .userInitiated) { () -> Int64 in
                 let fileManager = FileManager.default
                 let targetURL = Self.absoluteURL(for: location, homeDirectory: homeDirectory)
-                return try Self.clearContents(at: targetURL, fileManager: fileManager) { completed, total in
+                return try Self.clearContents(at: targetURL, fileManager: fileManager, deletionGuard: deletionGuard) { completed, total in
                     Task { @MainActor [weak self] in
                         self?.deletionProgress = StorageDeletionProgress(
                             label: "Cleaning \(location.title)",
@@ -429,6 +430,7 @@ final class StorageViewModel: ObservableObject {
         )
 
         let homeDirectory = self.homeDirectory
+        let deletionGuard = DeletionGuard.storage(home: homeDirectory)
 
         do {
             let reclaimedBytes = try await Task.detached(priority: .userInitiated) { () -> Int64 in
@@ -437,7 +439,7 @@ final class StorageViewModel: ObservableObject {
                 let totalLocations = existingLocations.count
                 for (index, location) in existingLocations.enumerated() {
                     let url = Self.absoluteURL(for: location, homeDirectory: homeDirectory)
-                    totalReclaimedBytes += try Self.clearContents(at: url, fileManager: fileManager)
+                    totalReclaimedBytes += try Self.clearContents(at: url, fileManager: fileManager, deletionGuard: deletionGuard)
                     let completed = index + 1
                     Task { @MainActor [weak self] in
                         self?.deletionProgress = StorageDeletionProgress(
@@ -521,7 +523,7 @@ final class StorageViewModel: ObservableObject {
         locationMutationRevisionByID[locationID, default: 0] += 1
     }
 
-    nonisolated private static var defaultLocations: [StorageLocation] {
+    nonisolated static var defaultLocations: [StorageLocation] {
         [
             StorageLocation(
                 id: "derived-data",
@@ -848,6 +850,7 @@ final class StorageViewModel: ObservableObject {
     nonisolated private static func clearContents(
         at url: URL,
         fileManager: FileManager,
+        deletionGuard: DeletionGuard,
         onProgress: (@Sendable (_ completed: Int, _ total: Int) -> Void)? = nil
     ) throws -> Int64 {
         var isDirectory: ObjCBool = false
@@ -858,7 +861,7 @@ final class StorageViewModel: ObservableObject {
 
         if !isDirectory.boolValue {
             let reclaimedBytes = fileSize(at: url)
-            try fileManager.removeItem(at: url)
+            try StorageShell.removeItem(at: url, guard: deletionGuard)
             onProgress?(1, 1)
             return reclaimedBytes
         }
@@ -877,7 +880,7 @@ final class StorageViewModel: ObservableObject {
 
         for (index, child) in children.enumerated() {
             reclaimedBytes += (try? StorageShell.allocatedSize(at: child)) ?? directorySize(at: child, fileManager: fileManager)
-            try StorageShell.removeItem(at: child)
+            try StorageShell.removeItem(at: child, guard: deletionGuard)
             onProgress?(index + 1, totalChildren)
         }
         return reclaimedBytes
