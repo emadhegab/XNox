@@ -85,8 +85,6 @@ struct SettingsView: View {
                         .font(XNoxTypography.bodyStrong)
                 }
             }
-
-            Toggle("Confirm destructive actions before running", isOn: $settings.confirmDestructiveActions)
         }
         .cardSurface()
     }
