@@ -37,9 +37,10 @@ nonisolated struct StorageDeleteFailure: Error {
     let freedBytes: Int64
     let underlying: any Error
 
-    /// "Failed to <what>: freed X before failing: <error>"; a cancelled task reads "cancelled".
-    func summary(_ what: String, cancelled: Bool) -> String {
-        let reason = (cancelled || underlying is CancellationError) ? "cancelled" : underlying.localizedDescription
+    /// "Failed to <what>: <error>", or "Failed to <what>: freed X before failing: <error>" once something was freed.
+    func summary(_ what: String) -> String {
+        let reason = underlying.localizedDescription
+        guard freedBytes > 0 else { return "Failed to \(what): \(reason)" }
         return "Failed to \(what): freed \(StorageViewModel.byteString(from: freedBytes)) before failing: \(reason)"
     }
 

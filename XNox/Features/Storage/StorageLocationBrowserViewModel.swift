@@ -319,7 +319,7 @@ final class StorageLocationBrowserViewModel: ObservableObject {
                 reclaimedBytes: expectedReclaimedBytes
             )
         } catch {
-            statusMessage = StorageDeleteFailure.unwrap(error).summary("delete selected items", cancelled: Task.isCancelled)
+            statusMessage = StorageDeleteFailure.unwrap(error).summary("delete selected items")
             historyRecorder.complete(
                 id: historyID,
                 status: .failed,
