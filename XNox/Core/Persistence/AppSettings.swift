@@ -22,7 +22,7 @@ enum AppAppearanceMode: String, CaseIterable, Identifiable {
 
 @MainActor
 final class AppSettings: ObservableObject {
-    static let shared = AppSettings()
+    static let shared = AppSettings(defaults: .standard)
 
     private(set) var lastSelectedSection: String
 
@@ -45,7 +45,7 @@ final class AppSettings: ObservableObject {
     private let defaults: UserDefaults
 
     /// Internal so tests can inject a throwaway `UserDefaults` suite.
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults) {
         self.defaults = defaults
 
         lastSelectedSection = defaults.string(forKey: Keys.lastSelectedSection) ?? AppSection.storage.rawValue
