@@ -1,0 +1,42 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Main brand color: #4096FF -->
+    <linearGradient id="shieldFill" x1="0" y1="0" x2="0.9" y2="1">
+      <stop offset="0%" stop-color="#5AA7FF"/>
+      <stop offset="100%" stop-color="#4096FF"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#EAF3FF"/>
+      <stop offset="100%" stop-color="#C9DEFF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Custom shield silhouette -->
+  <path d="M256 58
+           C332 58 389 84 409 130
+           L409 252
+           C409 336 349 406 256 454
+           C163 406 103 336 103 252
+           L103 130
+           C123 84 180 58 256 58 Z"
+        fill="url(#shieldFill)"
+        stroke="url(#rim)"
+        stroke-width="18"
+        stroke-linejoin="round"/>
+
+  <!-- Subtle inner contour -->
+  <path d="M256 90
+           C317 90 362 110 378 145
+           L378 245
+           C378 312 330 368 256 408
+           C182 368 134 312 134 245
+           L134 145
+           C150 110 195 90 256 90 Z"
+        fill="none"
+        stroke="rgba(234,243,255,0.28)"
+        stroke-width="6"/>
+
+  <!-- Cross -->
+  <rect x="235" y="165" width="42" height="186" rx="7" fill="#FFFFFF"/>
+  <rect x="163" y="237" width="186" height="42" rx="7" fill="#FFFFFF"/>
+</svg>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string></string>
+	<key>SUPublicEDKey</key>
+	<string>7lP1Tg57FDVv/oeEJlCDoQ/eV4O7/PKM9T9OjdHbIjg=</string>
+	<key>XNoxLicenseServerBaseURL</key>
+	<string></string>
+</dict>
+</plist>
