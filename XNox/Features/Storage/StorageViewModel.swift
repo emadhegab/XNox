@@ -558,7 +558,7 @@ final class StorageViewModel: ObservableObject {
             StorageLocation(
                 id: "xcode-cache",
                 title: "Xcode Cache",
-                subtitle: "Global Xcode cache files used across toolchain operations.",
+                subtitle: "Global Xcode cache files shared across projects.",
                 relativePath: "Library/Caches/com.apple.dt.Xcode",
                 cleanupNote: "Safe to clear. Startup and indexing may be slower until cache warms.",
                 systemImage: "internaldrive"
