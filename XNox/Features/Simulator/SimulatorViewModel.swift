@@ -8,12 +8,6 @@ actor SimulatorControlService {
         self.runner = runner
     }
 
-    private let simulatorLastUsedKeys = [
-        "lastBootedAt",
-        "lastBootedDate",
-        "lastUsedAt",
-    ]
-
     func loadCatalog() throws -> SimulatorCatalog {
         var warnings: [String] = []
 
@@ -291,18 +285,18 @@ actor SimulatorControlService {
 
     private func fetchRuntimes() throws -> [SimulatorRuntime] {
         let output = try runSimctl(["list", "runtimes", "--json"])
-        let root = try parseRootJSONDictionary(from: output, label: "runtimes")
-        let runtimesAny = arrayValue(root["runtimes"]) ?? []
+        let root = try SimctlParser.parseRootJSONDictionary(from: output, label: "runtimes")
+        let runtimesAny = SimctlParser.arrayValue(root["runtimes"]) ?? []
 
         let parsedRuntimes: [SimulatorRuntime] = runtimesAny.compactMap { runtimeAny in
-            guard let runtime = dictionaryValue(runtimeAny) else { return nil }
-            guard let identifier = stringValue(runtime["identifier"]), !identifier.isEmpty else {
+            guard let runtime = SimctlParser.dictionaryValue(runtimeAny) else { return nil }
+            guard let identifier = SimctlParser.stringValue(runtime["identifier"]), !identifier.isEmpty else {
                 return nil
             }
 
-            let name = stringValue(runtime["name"]) ?? readableRuntimeName(from: identifier)
-            let version = stringValue(runtime["version"])
-            let isAvailable = availabilityFlag(from: runtime)
+            let name = SimctlParser.stringValue(runtime["name"]) ?? SimctlParser.readableRuntimeName(from: identifier)
+            let version = SimctlParser.stringValue(runtime["version"])
+            let isAvailable = SimctlParser.availabilityFlag(from: runtime)
 
             return SimulatorRuntime(
                 identifier: identifier,
@@ -311,7 +305,7 @@ actor SimulatorControlService {
                 isAvailable: isAvailable
             )
         }
-        let uniqueParsedRuntimes = uniqueRuntimes(parsedRuntimes)
+        let uniqueParsedRuntimes = SimctlParser.uniqueRuntimes(parsedRuntimes)
             .filter(\.isAvailable)
             .sorted { lhs, rhs in
                 lhs.name.localizedStandardCompare(rhs.name) == .orderedDescending
@@ -322,18 +316,18 @@ actor SimulatorControlService {
         }
 
         let fallbackOutput = try runSimctl(["list", "runtimes"])
-        return uniqueRuntimes(parseRuntimesFromPlainList(fallbackOutput))
+        return SimctlParser.uniqueRuntimes(SimctlParser.parseRuntimesFromPlainList(fallbackOutput))
     }
 
     private func fetchDeviceTypes() throws -> [SimulatorDeviceType] {
         let output = try runSimctl(["list", "devicetypes", "--json"])
-        let root = try parseRootJSONDictionary(from: output, label: "device types")
+        let root = try SimctlParser.parseRootJSONDictionary(from: output, label: "device types")
 
         let rawTypes: [Any] = {
-            if let deviceTypes = arrayValue(root["devicetypes"]) {
+            if let deviceTypes = SimctlParser.arrayValue(root["devicetypes"]) {
                 return deviceTypes
             }
-            if let deviceTypes = arrayValue(root["deviceTypes"]) {
+            if let deviceTypes = SimctlParser.arrayValue(root["deviceTypes"]) {
                 return deviceTypes
             }
             return []
@@ -341,8 +335,8 @@ actor SimulatorControlService {
 
         var seenIdentifiers = Set<String>()
         let types = rawTypes.compactMap { typeAny -> SimulatorDeviceType? in
-            guard let type = dictionaryValue(typeAny) else { return nil }
-            guard let identifier = stringValue(type["identifier"]), !identifier.isEmpty else {
+            guard let type = SimctlParser.dictionaryValue(typeAny) else { return nil }
+            guard let identifier = SimctlParser.stringValue(type["identifier"]), !identifier.isEmpty else {
                 return nil
             }
 
@@ -350,7 +344,7 @@ actor SimulatorControlService {
                 return nil
             }
 
-            let name = stringValue(type["name"]) ?? readableDeviceTypeName(from: identifier)
+            let name = SimctlParser.stringValue(type["name"]) ?? SimctlParser.readableDeviceTypeName(from: identifier)
             return SimulatorDeviceType(identifier: identifier, name: name)
         }
 
@@ -363,7 +357,7 @@ actor SimulatorControlService {
         }
 
         let fallbackOutput = try runSimctl(["list", "devicetypes"])
-        return parseDeviceTypesFromPlainList(fallbackOutput)
+        return SimctlParser.parseDeviceTypesFromPlainList(fallbackOutput)
     }
 
     private func runSimctl(_ arguments: [String], timeoutSeconds: TimeInterval = 20) throws -> String {
@@ -374,24 +368,24 @@ actor SimulatorControlService {
         runtimeByIdentifier: [String: SimulatorRuntime]
     ) throws -> [SimulatorDevice] {
         let devicesOutput = try runSimctl(["list", "devices", "--json"])
-        let root = try parseRootJSONDictionary(from: devicesOutput, label: "devices")
-        let devicesRoot = dictionaryValue(root["devices"]) ?? [:]
+        let root = try SimctlParser.parseRootJSONDictionary(from: devicesOutput, label: "devices")
+        let devicesRoot = SimctlParser.dictionaryValue(root["devices"]) ?? [:]
         let lastUsedByUDID = loadLastUsedDatesByUDID()
 
         return devicesRoot.flatMap { runtimeIdentifier, runtimeDevicesAny in
-            let runtimeDevices = arrayValue(runtimeDevicesAny) ?? []
+            let runtimeDevices = SimctlParser.arrayValue(runtimeDevicesAny) ?? []
             return runtimeDevices.compactMap { rawDeviceAny -> SimulatorDevice? in
-                guard let rawDevice = dictionaryValue(rawDeviceAny) else { return nil }
-                guard let name = stringValue(rawDevice["name"]),
+                guard let rawDevice = SimctlParser.dictionaryValue(rawDeviceAny) else { return nil }
+                guard let name = SimctlParser.stringValue(rawDevice["name"]),
                       !name.isEmpty,
-                      let udid = stringValue(rawDevice["udid"]),
+                      let udid = SimctlParser.stringValue(rawDevice["udid"]),
                       !udid.isEmpty else {
                     return nil
                 }
 
-                let runtimeName = runtimeByIdentifier[runtimeIdentifier]?.name ?? readableRuntimeName(from: runtimeIdentifier)
-                let state = stringValue(rawDevice["state"]) ?? "Unknown"
-                let availability = availabilityDetails(from: rawDevice)
+                let runtimeName = runtimeByIdentifier[runtimeIdentifier]?.name ?? SimctlParser.readableRuntimeName(from: runtimeIdentifier)
+                let state = SimctlParser.stringValue(rawDevice["state"]) ?? "Unknown"
+                let availability = SimctlParser.availabilityDetails(from: rawDevice)
                 let hasDeviceDirectory = deviceDirectoryExists(forUDID: udid)
                 let isAvailable = availability.isAvailable && hasDeviceDirectory
                 let availabilityIssue = availability.issue ?? (hasDeviceDirectory ? nil : "Device files are missing")
@@ -404,7 +398,7 @@ actor SimulatorControlService {
                     state: state,
                     isAvailable: isAvailable,
                     availabilityIssue: availabilityIssue,
-                    deviceTypeIdentifier: stringValue(rawDevice["deviceTypeIdentifier"]) ?? "",
+                    deviceTypeIdentifier: SimctlParser.stringValue(rawDevice["deviceTypeIdentifier"]) ?? "",
                     lastUsedAt: lastUsedByUDID[udid]
                 )
             }
@@ -427,112 +421,6 @@ actor SimulatorControlService {
             ["-a", "Simulator", "--args", "-CurrentDeviceUDID", udid],
             timeout: 10
         )
-    }
-
-    private func readableRuntimeName(from runtimeIdentifier: String) -> String {
-        runtimeIdentifier
-            .replacingOccurrences(of: "com.apple.CoreSimulator.SimRuntime.", with: "")
-            .replacingOccurrences(of: "-", with: " ")
-    }
-
-    private func readableDeviceTypeName(from identifier: String) -> String {
-        identifier
-            .replacingOccurrences(of: "com.apple.CoreSimulator.SimDeviceType.", with: "")
-            .replacingOccurrences(of: "-", with: " ")
-    }
-
-    private func parseRootJSONDictionary(from output: String, label: String) throws -> [String: Any] {
-        guard let data = output.data(using: .utf8) else {
-            throw SimulatorControlError.invalidJSON("simctl \(label) output is not UTF-8")
-        }
-
-        let jsonObject: Any
-        do {
-            jsonObject = try JSONSerialization.jsonObject(with: data)
-        } catch {
-            throw SimulatorControlError.invalidJSON(error.localizedDescription)
-        }
-
-        guard let root = jsonObject as? [String: Any] else {
-            throw SimulatorControlError.invalidJSON("simctl \(label) JSON root is not an object")
-        }
-
-        return root
-    }
-
-    private func stringValue(_ value: Any?) -> String? {
-        if let string = value as? String {
-            let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
-            return trimmed.isEmpty ? nil : trimmed
-        }
-        return nil
-    }
-
-    private func boolValue(_ value: Any?) -> Bool? {
-        if let boolean = value as? Bool {
-            return boolean
-        }
-        if let number = value as? NSNumber {
-            return number.boolValue
-        }
-        if let string = stringValue(value) {
-            switch string.lowercased() {
-            case "1", "true", "yes", "available":
-                return true
-            case "0", "false", "no", "unavailable":
-                return false
-            default:
-                return nil
-            }
-        }
-        return nil
-    }
-
-    private func dictionaryValue(_ value: Any?) -> [String: Any]? {
-        value as? [String: Any]
-    }
-
-    private func arrayValue(_ value: Any?) -> [Any]? {
-        value as? [Any]
-    }
-
-    private func availabilityFlag(from payload: [String: Any]) -> Bool {
-        if let explicitAvailability = boolValue(payload["isAvailable"]) {
-            return explicitAvailability
-        }
-
-        if let availability = stringValue(payload["availability"]) {
-            let normalized = availability.lowercased()
-            if normalized.contains("unavailable") || normalized.contains("not available") {
-                return false
-            }
-            if normalized.contains("available") {
-                return true
-            }
-        }
-
-        if let availabilityError = stringValue(payload["availabilityError"]) {
-            return availabilityError.isEmpty
-        }
-
-        return true
-    }
-
-    private func availabilityDetails(from payload: [String: Any]) -> (isAvailable: Bool, issue: String?) {
-        let isAvailable = availabilityFlag(from: payload)
-        guard !isAvailable else {
-            return (true, nil)
-        }
-
-        if let availabilityError = stringValue(payload["availabilityError"]), !availabilityError.isEmpty {
-            return (false, availabilityError)
-        }
-
-        if let availability = stringValue(payload["availability"]), !availability.isEmpty {
-            return (false, availability)
-        }
-
-        return (false, "Unavailable in CoreSimulator")
     }
 
     private func shortErrorMessage(from error: Error) -> String {
@@ -631,7 +519,7 @@ actor SimulatorControlService {
                 continue
             }
 
-            let lastUsedAt = simulatorLastUsedDate(from: plistDictionary)
+            let lastUsedAt = SimctlParser.simulatorLastUsedDate(from: plistDictionary)
                 ?? (try? plistURL.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
 
             if let lastUsedAt {
@@ -642,121 +530,6 @@ actor SimulatorControlService {
         return result
     }
 
-    private func simulatorLastUsedDate(from plistDictionary: [String: Any]) -> Date? {
-        for key in simulatorLastUsedKeys {
-            guard let rawValue = plistDictionary[key] else {
-                continue
-            }
-            if let parsedDate = parseDate(fromPlistValue: rawValue) {
-                return parsedDate
-            }
-        }
-        return nil
-    }
-
-    private func parseDate(fromPlistValue value: Any) -> Date? {
-        if let date = value as? Date {
-            return date
-        }
-        if let stringValue = value as? String {
-            let isoWithFraction = ISO8601DateFormatter()
-            isoWithFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let date = isoWithFraction.date(from: stringValue) {
-                return date
-            }
-
-            let isoBasic = ISO8601DateFormatter()
-            isoBasic.formatOptions = [.withInternetDateTime]
-            if let date = isoBasic.date(from: stringValue) {
-                return date
-            }
-        }
-        if let timestamp = value as? TimeInterval, timestamp > 0 {
-            let seconds = timestamp > 4_102_444_800 ? (timestamp / 1_000) : timestamp
-            return Date(timeIntervalSince1970: seconds)
-        }
-        if let number = value as? NSNumber {
-            let timestamp = number.doubleValue
-            guard timestamp > 0 else { return nil }
-            let seconds = timestamp > 4_102_444_800 ? (timestamp / 1_000) : timestamp
-            return Date(timeIntervalSince1970: seconds)
-        }
-        return nil
-    }
-
-    private func uniqueRuntimes(_ runtimes: [SimulatorRuntime]) -> [SimulatorRuntime] {
-        var seenIdentifiers = Set<String>()
-        return runtimes.filter { runtime in
-            seenIdentifiers.insert(runtime.identifier).inserted
-        }
-    }
-
-    private func parseRuntimesFromPlainList(_ output: String) -> [SimulatorRuntime] {
-        let parsedRuntimes = output
-            .split(separator: "\n")
-            .compactMap { line -> SimulatorRuntime? in
-                let text = String(line).trimmingCharacters(in: .whitespacesAndNewlines)
-                guard text.contains("SimRuntime."),
-                      let identifierStart = text.range(of: "com.apple.CoreSimulator.SimRuntime.") else {
-                    return nil
-                }
-
-                let identifier = String(text[identifierStart.lowerBound...])
-                    .split(separator: " ")
-                    .first
-                    .map(String.init) ?? ""
-                guard !identifier.isEmpty else { return nil }
-
-                let name = text.components(separatedBy: " (").first?.trimmingCharacters(in: .whitespacesAndNewlines)
-                    ?? readableRuntimeName(from: identifier)
-                let isAvailable = !text.localizedCaseInsensitiveContains("unavailable")
-
-                return SimulatorRuntime(
-                    identifier: identifier,
-                    name: name,
-                    version: nil,
-                    isAvailable: isAvailable
-                )
-            }
-        return uniqueRuntimes(parsedRuntimes)
-            .filter(\.isAvailable)
-            .sorted { lhs, rhs in
-                lhs.name.localizedStandardCompare(rhs.name) == .orderedDescending
-            }
-    }
-
-    private func parseDeviceTypesFromPlainList(_ output: String) -> [SimulatorDeviceType] {
-        var seenIdentifiers = Set<String>()
-
-        return output
-            .split(separator: "\n")
-            .compactMap { line in
-                let text = String(line).trimmingCharacters(in: .whitespacesAndNewlines)
-                guard text.contains("SimDeviceType."),
-                      let identifierStart = text.range(of: "com.apple.CoreSimulator.SimDeviceType.") else {
-                    return nil
-                }
-
-                let identifier = String(text[identifierStart.lowerBound...])
-                    .split(separator: ")")
-                    .first
-                    .map(String.init)?
-                    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-
-                guard !identifier.isEmpty,
-                      seenIdentifiers.insert(identifier).inserted else {
-                    return nil
-                }
-
-                let name = text.components(separatedBy: " (").first?.trimmingCharacters(in: .whitespacesAndNewlines)
-                    ?? readableDeviceTypeName(from: identifier)
-
-                return SimulatorDeviceType(identifier: identifier, name: name)
-            }
-            .sorted { lhs, rhs in
-                lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
-            }
-    }
 }
 
     @MainActor
