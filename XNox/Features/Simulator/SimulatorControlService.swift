@@ -189,14 +189,6 @@ actor SimulatorControlService {
                 do {
                     _ = try runSimctl(["addmedia", udid, path], timeoutSeconds: 45)
                     importedCount += 1
-                    continue
-                } catch {
-                    lastError = error
-                }
-
-                do {
-                    _ = try runSimctl(["addmedia", "booted", path], timeoutSeconds: 45)
-                    importedCount += 1
                 } catch {
                     lastError = error
                 }
