@@ -71,12 +71,6 @@ struct AppRootView: View {
             SimulatorView()
         case .storage:
             StorageView()
-        case .signing:
-            SigningView()
-        case .devices:
-            DeviceRegistrationView {
-                appState.selectedSection = .signing
-            }
         case .history:
             OperationsHistoryView()
         case .settings:
