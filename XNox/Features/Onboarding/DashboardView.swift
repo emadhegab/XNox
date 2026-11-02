@@ -9,7 +9,7 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: XNoxTheme.cardSpacing) {
                 SectionHeaderView(
                     title: "Control Center",
-                    subtitle: "Keep your local toolchain reliable before signing, simulator, and device workflows."
+                    subtitle: "Check your local toolchain before simulator workflows."
                 )
 
                 healthOverviewCard
