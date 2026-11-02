@@ -91,26 +91,21 @@ actor SimulatorControlService {
 
     func eraseSimulator(udid: String) throws {
         try Self.validateUDID(udid)
-        var eraseError: Error?
+        let maxAttempts = 6
 
         // Erase can fail while simulator is transitioning states; retry with shutdown each cycle.
-        for attempt in 1 ... 6 {
+        // Never fall back to `simctl delete`: erase must not remove the device. The last failure is surfaced.
+        for attempt in 1 ... maxAttempts {
             _ = try? runSimctl(["shutdown", udid], timeoutSeconds: 90)
 
             do {
                 _ = try runSimctl(["erase", udid], timeoutSeconds: 180)
                 return
             } catch {
-                eraseError = error
-                if attempt < 6 {
-                    let backoffMicroseconds = useconds_t(min(4_000_000, eraseBackoffMicroseconds * attempt))
-                    usleep(backoffMicroseconds)
-                }
+                if attempt == maxAttempts { throw error }
+                usleep(useconds_t(min(4_000_000, eraseBackoffMicroseconds * attempt)))
             }
         }
-
-        // Surface the failure. Never fall back to `simctl delete`: erase must not remove the device.
-        throw eraseError ?? SimulatorControlError.invalidInput("Erase failed.")
     }
 
     func deleteSimulator(udid: String) throws {

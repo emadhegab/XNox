@@ -54,11 +54,6 @@ struct StorageLocationBrowserItem: Identifiable, Hashable, Sendable {
         StorageViewModel.byteString(from: sizeBytes)
     }
 
-    var modifiedAtLabel: String {
-        guard let modifiedAt else { return "Unknown date" }
-        return modifiedAt.formatted(date: .abbreviated, time: .shortened)
-    }
-
     var createdAtLabel: String {
         guard let createdAt else { return "Unknown" }
         return createdAt.formatted(date: .abbreviated, time: .shortened)
@@ -110,12 +105,6 @@ final class StorageLocationBrowserViewModel: ObservableObject {
     private let home: URL
     private let historyRecorder: any OperationHistoryRecording
     private var selectionAnchorItemID: String?
-    nonisolated private static let coreSimulatorDevicesLocationID = "core-simulator-devices"
-    nonisolated private static let simulatorLastUsedKeys = [
-        "lastBootedAt",
-        "lastBootedDate",
-        "lastUsedAt",
-    ]
 
     init(
         locationTitle: String,
@@ -413,7 +402,7 @@ final class StorageLocationBrowserViewModel: ObservableObject {
         locationID: String,
         fileManager: FileManager
     ) -> CoreSimulatorMetadata? {
-        guard locationID == coreSimulatorDevicesLocationID, isDirectory else {
+        guard locationID == StorageViewModel.coreSimulatorDevicesLocationID, isDirectory else {
             return nil
         }
         guard UUID(uuidString: fallbackName) != nil else {
@@ -461,7 +450,7 @@ final class StorageLocationBrowserViewModel: ObservableObject {
     }
 
     nonisolated private static func simulatorLastUsedDate(from plistDictionary: [String: Any]) -> Date? {
-        for key in simulatorLastUsedKeys {
+        for key in SimctlParser.lastUsedKeys {
             guard let rawValue = plistDictionary[key] else {
                 continue
             }
@@ -589,57 +578,5 @@ final class StorageLocationBrowserViewModel: ObservableObject {
         case .unknown:
             return "Unknown last-used date"
         }
-    }
-
-    nonisolated private static func directorySize(at url: URL, fileManager: FileManager) -> Int64 {
-        var isDirectory: ObjCBool = false
-        guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
-            return 0
-        }
-
-        if !isDirectory.boolValue {
-            return fileSize(at: url)
-        }
-
-        let keys: Set<URLResourceKey> = [
-            .isRegularFileKey,
-            .totalFileAllocatedSizeKey,
-            .fileAllocatedSizeKey,
-            .fileSizeKey,
-        ]
-
-        guard let enumerator = fileManager.enumerator(
-            at: url,
-            includingPropertiesForKeys: Array(keys),
-            options: [],
-            errorHandler: { _, _ in true }
-        ) else {
-            return 0
-        }
-
-        var totalSize: Int64 = 0
-        for case let itemURL as URL in enumerator {
-            guard let values = try? itemURL.resourceValues(forKeys: keys),
-                  values.isRegularFile == true else {
-                continue
-            }
-
-            totalSize += Int64(values.totalFileAllocatedSize ?? values.fileAllocatedSize ?? values.fileSize ?? 0)
-        }
-
-        return totalSize
-    }
-
-    nonisolated private static func fileSize(at url: URL) -> Int64 {
-        let keys: Set<URLResourceKey> = [
-            .totalFileAllocatedSizeKey,
-            .fileAllocatedSizeKey,
-            .fileSizeKey,
-        ]
-
-        guard let values = try? url.resourceValues(forKeys: keys) else {
-            return 0
-        }
-        return Int64(values.totalFileAllocatedSize ?? values.fileAllocatedSize ?? values.fileSize ?? 0)
     }
 }

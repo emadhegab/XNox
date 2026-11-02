@@ -26,18 +26,6 @@ final class OperationsHistoryViewModel: ObservableObject {
         }
     }
 
-    func append(_ log: OperationLog) {
-        logs.insert(log, at: 0)
-        persist()
-    }
-
-    func replace(_ log: OperationLog) {
-        guard let index = logs.firstIndex(where: { $0.id == log.id }) else { return }
-        logs[index] = log
-        logs.sort { $0.startedAt > $1.startedAt }
-        persist()
-    }
-
     private func persist() {
         let sortedLogs = logs.sorted { $0.startedAt > $1.startedAt }
         do {

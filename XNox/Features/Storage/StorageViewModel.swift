@@ -88,12 +88,7 @@ final class StorageViewModel: ObservableObject {
     private var browseCacheByLocationID: [String: [StorageLocationBrowserItem]] = [:]
     private var locationMutationRevisionByID: [String: Int] = [:]
     private var activeScanActivityID: UUID?
-    nonisolated private static let coreSimulatorDevicesLocationID = "core-simulator-devices"
-    nonisolated private static let simulatorLastUsedKeys = [
-        "lastBootedAt",
-        "lastBootedDate",
-        "lastUsedAt",
-    ]
+    nonisolated static let coreSimulatorDevicesLocationID = "core-simulator-devices"
 
     init(
         activityCenter: GlobalActivityCenter? = nil,
@@ -137,10 +132,6 @@ final class StorageViewModel: ObservableObject {
                 partial += snapshot.bytes
             }
         }
-    }
-
-    var existingLocationCount: Int {
-        snapshots.filter(\.exists).count
     }
 
     var liveExistingLocationCount: Int {
@@ -816,7 +807,7 @@ final class StorageViewModel: ObservableObject {
     }
 
     nonisolated private static func simulatorLastUsedDate(from plistDictionary: [String: Any]) -> Date? {
-        for key in simulatorLastUsedKeys {
+        for key in SimctlParser.lastUsedKeys {
             guard let rawValue = plistDictionary[key] else {
                 continue
             }
