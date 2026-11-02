@@ -1,7 +1,7 @@
 import Foundation
 
 /// Why `DeletionGuard` refused a path.
-enum DeletionGuardError: LocalizedError {
+nonisolated enum DeletionGuardError: LocalizedError {
     case outsideAllowlist(String)
     case isRoot(String)
 
@@ -18,7 +18,8 @@ enum DeletionGuardError: LocalizedError {
 /// The single allowlist every delete must pass. A path is allowed only if, after collapsing `..`
 /// and resolving symlinks on its parent directories, it is strictly inside one of `roots`.
 /// The leaf is deliberately not resolved: deleting a symlink removes the link, never its target.
-struct DeletionGuard: Sendable {
+// Accepted TOCTOU: validate-then-rm leaves a window; exploiting it needs a same-user attacker swapping a dir for a symlink.
+nonisolated struct DeletionGuard: Sendable {
     let roots: [URL]
 
     /// Roots are the Storage screen's known locations under `home`.

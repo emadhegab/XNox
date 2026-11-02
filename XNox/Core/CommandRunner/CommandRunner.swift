@@ -1,12 +1,12 @@
 import Foundation
 
 /// Runs an external command and returns its stdout. Exists so tests can inject a fake.
-protocol CommandRunning: Sendable {
+nonisolated protocol CommandRunning: Sendable {
     func run(_ executable: String, _ arguments: [String], timeout: TimeInterval) throws -> String
 }
 
 /// Failure modes of `CommandRunning`.
-enum CommandError: LocalizedError {
+nonisolated enum CommandError: LocalizedError {
     case failed(command: String, message: String)
     case notAllowed(String)
 
@@ -25,7 +25,8 @@ enum CommandError: LocalizedError {
 
 /// Real `Process`-based runner. Only a fixed set of executables may run; output goes via temp files
 /// so large output cannot deadlock a pipe, and a timeout terminates the child.
-struct ProcessCommandRunner: CommandRunning {
+nonisolated struct ProcessCommandRunner: CommandRunning {
+    // /bin/rm must only be invoked via StorageShell.removeItem(at:guard:).
     static let allowedExecutables: Set<String> = [
         "/usr/bin/xcrun", "/usr/bin/du", "/bin/rm", "/usr/bin/open",
     ]
