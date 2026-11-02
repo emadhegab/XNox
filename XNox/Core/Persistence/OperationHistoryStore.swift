@@ -1,10 +1,12 @@
 import Foundation
 
+/// Loads and saves History entries. A protocol so tests can use a temp file or a fake.
 protocol OperationHistoryStoring {
     func loadLogs() throws -> [OperationLog]
     func saveLogs(_ logs: [OperationLog]) throws
 }
 
+/// Keeps History in a JSON file and drops entries older than the retention setting.
 final class JSONOperationHistoryStore: OperationHistoryStoring {
     static let defaultRetentionDays = 30
 
@@ -45,6 +47,7 @@ final class JSONOperationHistoryStore: OperationHistoryStoring {
         }
     }
 
+    /// Reads the file, prunes old entries (rewriting the file if any were dropped), newest first.
     func loadLogs() throws -> [OperationLog] {
         guard fileManager.fileExists(atPath: fileURL.path) else {
             return []
@@ -59,6 +62,7 @@ final class JSONOperationHistoryStore: OperationHistoryStoring {
         return prunedLogs
     }
 
+    /// Prunes old entries, then writes the file atomically.
     func saveLogs(_ logs: [OperationLog]) throws {
         try persist(prune(logs))
     }

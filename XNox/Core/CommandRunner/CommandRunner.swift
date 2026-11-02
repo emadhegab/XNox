@@ -2,6 +2,7 @@ import Foundation
 
 /// Runs an external command and returns its stdout. Exists so tests can inject a fake.
 nonisolated protocol CommandRunning: Sendable {
+    /// Runs `executable` with `arguments`, waits up to `timeout` seconds, and returns stdout. Throws `CommandError` on failure.
     func run(_ executable: String, _ arguments: [String], timeout: TimeInterval) throws -> String
 }
 
@@ -31,6 +32,7 @@ nonisolated struct ProcessCommandRunner: CommandRunning {
         "/usr/bin/xcrun", "/usr/bin/du", "/bin/rm", "/usr/bin/open",
     ]
 
+    /// Throws `.notAllowed` before launching anything if `executable` is not in `allowedExecutables`.
     func run(_ executable: String, _ arguments: [String], timeout timeoutSeconds: TimeInterval) throws -> String {
         guard Self.allowedExecutables.contains(executable) else {
             throw CommandError.notAllowed(executable)

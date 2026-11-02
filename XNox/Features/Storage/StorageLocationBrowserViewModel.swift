@@ -88,6 +88,7 @@ struct StorageLocationBrowserItem: Identifiable, Hashable, Sendable {
     }
 }
 
+/// State for browsing one location: list its items, select some, and delete the selection through the guard.
 @MainActor
 final class StorageLocationBrowserViewModel: ObservableObject {
     @Published private(set) var items: [StorageLocationBrowserItem] = []
@@ -161,6 +162,7 @@ final class StorageLocationBrowserViewModel: ObservableObject {
         selectedItemIDs.contains(itemID)
     }
 
+    /// Selects or deselects an item. With `extendingRange`, applies to everything between the last anchor and this item.
     func setSelected(_ isSelected: Bool, for itemID: String, extendingRange: Bool = false) {
         if extendingRange,
            let anchorItemID = selectionAnchorItemID,
@@ -246,6 +248,7 @@ final class StorageLocationBrowserViewModel: ObservableObject {
         }
     }
 
+    /// Deletes the selected items through `StorageShell.removeItem`. Returns nil if nothing was selected or a delete is running.
     func deleteSelected() async -> StorageBrowserDeletionResult? {
         guard !isDeleting else { return nil }
 

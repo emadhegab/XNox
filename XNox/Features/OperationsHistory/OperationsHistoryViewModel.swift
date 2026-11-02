@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 
+/// Feeds the History screen. Reloads whenever the recorder posts `didChangeNotification`.
 @MainActor
 final class OperationsHistoryViewModel: ObservableObject {
     @Published private(set) var logs: [OperationLog] = []

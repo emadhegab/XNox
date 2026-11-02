@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import Foundation
 
+/// A known Xcode folder XNox can scan and clean, with a path relative to the home folder.
 struct StorageLocation: Identifiable, Hashable, Sendable {
     let id: String
     let title: String
@@ -15,6 +16,7 @@ struct StorageLocation: Identifiable, Hashable, Sendable {
     }
 }
 
+/// The last scan result for one location.
 struct StorageLocationSnapshot: Identifiable, Hashable, Sendable {
     let location: StorageLocation
     let absolutePath: String
@@ -68,6 +70,7 @@ struct StorageDeletionProgress: Hashable, Sendable {
     }
 }
 
+/// State and actions for the Storage screen: scan the known locations, delete their contents, and record each delete in History.
 @MainActor
 final class StorageViewModel: ObservableObject {
     @Published private(set) var snapshots: [StorageLocationSnapshot]
@@ -209,6 +212,7 @@ final class StorageViewModel: ObservableObject {
         scannedLocationIDs.insert(locationID)
     }
 
+    /// Rescans every location.
     func refresh() async {
         guard !isRefreshing else { return }
 
@@ -285,6 +289,7 @@ final class StorageViewModel: ObservableObject {
         statusMessage = "Scanned \(locations.count) locations. Reclaimable space: \(Self.byteString(from: totalKnownBytes))."
     }
 
+    /// Rescans one location.
     func refresh(locationID: String) async {
         guard let location = locations.first(where: { $0.id == locationID }) else { return }
         guard !pendingLocationIDs.contains(locationID) else { return }
@@ -332,6 +337,7 @@ final class StorageViewModel: ObservableObject {
         statusMessage = "Updated \(location.title). Reclaimable space: \(Self.byteString(from: totalKnownBytes))."
     }
 
+    /// Deletes the contents of one location through `StorageShell.removeItem`. The location folder itself stays. Failures and partial progress go to History.
     func delete(locationID: String) async {
         guard !isDeleting else { return }
         guard let location = locations.first(where: { $0.id == locationID }) else { return }
@@ -397,6 +403,7 @@ final class StorageViewModel: ObservableObject {
         }
     }
 
+    /// Same as `delete(locationID:)` for every location that exists.
     func deleteAll() async {
         guard !isDeleting else { return }
 

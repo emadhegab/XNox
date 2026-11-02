@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 
+/// State and actions for the Simulators screen. Runs `simctl` through `SimulatorControlService` and logs destructive actions to History.
 @MainActor
 final class SimulatorViewModel: ObservableObject {
     static let shared = SimulatorViewModel()
@@ -60,6 +61,7 @@ final class SimulatorViewModel: ObservableObject {
         return warnings.joined(separator: " | ")
     }
 
+    /// Reloads simulators, runtimes and device types. Sets `loadError` when nothing loaded and `simctl` reported problems.
     func refresh() async {
         guard !isRefreshing else { return }
         isRefreshing = true

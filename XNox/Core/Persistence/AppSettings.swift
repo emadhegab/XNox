@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 
+/// The appearance choices offered in Settings.
 enum AppAppearanceMode: String, CaseIterable, Identifiable {
     case system
     case light
@@ -20,6 +21,7 @@ enum AppAppearanceMode: String, CaseIterable, Identifiable {
     }
 }
 
+/// User preferences, backed by `UserDefaults`. Each property writes through when it changes.
 @MainActor
 final class AppSettings: ObservableObject {
     static let shared = AppSettings(defaults: .standard)
@@ -60,12 +62,14 @@ final class AppSettings: ObservableObject {
         historyRetentionDays = defaults.object(forKey: Keys.historyRetentionDays) as? Int ?? 30
     }
 
+    /// Remembers the last open sidebar section so it can be reopened on launch.
     func persistLastSelectedSection(_ rawValue: String) {
         guard lastSelectedSection != rawValue else { return }
         lastSelectedSection = rawValue
         defaults.set(rawValue, forKey: Keys.lastSelectedSection)
     }
 
+    /// Restores section, history retention and appearance to their defaults. Launch-at-login is not changed.
     func resetToDefaults() {
         persistLastSelectedSection(AppSection.storage.rawValue)
         defaultSectionOnLaunch = AppSection.storage.rawValue
@@ -75,6 +79,7 @@ final class AppSettings: ObservableObject {
     }
 }
 
+/// `UserDefaults` keys for settings. Shared so the history store can read the retention days.
 enum AppSettingsKeys {
     static let lastSelectedSection = "settings.lastSelectedSection"
     static let defaultSectionOnLaunch = "settings.defaultSectionOnLaunch"
