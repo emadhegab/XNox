@@ -1,5 +1,6 @@
 import Foundation
 
+/// One History entry: what ran, when, how it ended. Stored as JSON by `JSONOperationHistoryStore`.
 struct OperationLog: Codable, Identifiable, Sendable {
     let id: UUID
     var feature: String

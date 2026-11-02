@@ -1,6 +1,7 @@
 import Combine
 import SwiftUI
 
+/// App-wide state: selected sidebar section, settings, and the shared Storage view model.
 @MainActor
 final class AppState: ObservableObject {
     @Published var splitViewVisibility: NavigationSplitViewVisibility = .all

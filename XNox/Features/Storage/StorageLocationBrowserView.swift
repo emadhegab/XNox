@@ -67,7 +67,10 @@ struct StorageLocationBrowserView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This permanently removes \(viewModel.selectedCount) selected item(s) from disk.")
+            Text(StorageConfirmMessage.browser(
+                names: viewModel.items.filter { viewModel.selectedItemIDs.contains($0.id) }.map(\.name),
+                totalBytes: viewModel.selectedReclaimableBytes
+            ))
         }
     }
 

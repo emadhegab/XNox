@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 
+/// Feeds the History screen. Reloads whenever the recorder posts `didChangeNotification`.
 @MainActor
 final class OperationsHistoryViewModel: ObservableObject {
     @Published private(set) var logs: [OperationLog] = []
@@ -24,18 +25,6 @@ final class OperationsHistoryViewModel: ObservableObject {
         } catch {
             logs = []
         }
-    }
-
-    func append(_ log: OperationLog) {
-        logs.insert(log, at: 0)
-        persist()
-    }
-
-    func replace(_ log: OperationLog) {
-        guard let index = logs.firstIndex(where: { $0.id == log.id }) else { return }
-        logs[index] = log
-        logs.sort { $0.startedAt > $1.startedAt }
-        persist()
     }
 
     private func persist() {

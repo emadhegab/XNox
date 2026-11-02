@@ -1,5 +1,6 @@
 import Foundation
 
+/// Errors from `StorageShell` when a command prints something unexpected.
 nonisolated enum StorageShellError: LocalizedError {
     case invalidOutput(command: String, output: String)
 
@@ -11,6 +12,7 @@ nonisolated enum StorageShellError: LocalizedError {
     }
 }
 
+/// The only place that runs `du` and `rm` for Storage. All deletes pass `DeletionGuard` here.
 nonisolated enum StorageShell {
     private static let runner = ProcessCommandRunner()
     /// du timeout.
@@ -18,6 +20,7 @@ nonisolated enum StorageShell {
     /// rm of one huge child (simulator runtimes, DerivedData) can run very long.
     private static let removeTimeout: TimeInterval = 3600
 
+    /// Size on disk in bytes, from `du -sk`.
     static func allocatedSize(at url: URL) throws -> Int64 {
         let output = try runner.run("/usr/bin/du", ["-sk", url.path], timeout: commandTimeout)
         let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)

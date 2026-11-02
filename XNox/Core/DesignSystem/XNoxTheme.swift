@@ -6,7 +6,6 @@ enum XNoxTheme {
     static let cardSpacing: CGFloat = 16
     static let cardCornerRadius: CGFloat = 14
     static let controlCornerRadius: CGFloat = 10
-    static let iconSize: CGFloat = 16
     static let grid: CGFloat = 4
     static let space2: CGFloat = 8
     static let space3: CGFloat = 12

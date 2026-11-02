@@ -54,11 +54,6 @@ struct StorageLocationBrowserItem: Identifiable, Hashable, Sendable {
         StorageViewModel.byteString(from: sizeBytes)
     }
 
-    var modifiedAtLabel: String {
-        guard let modifiedAt else { return "Unknown date" }
-        return modifiedAt.formatted(date: .abbreviated, time: .shortened)
-    }
-
     var createdAtLabel: String {
         guard let createdAt else { return "Unknown" }
         return createdAt.formatted(date: .abbreviated, time: .shortened)
@@ -93,6 +88,7 @@ struct StorageLocationBrowserItem: Identifiable, Hashable, Sendable {
     }
 }
 
+/// State for browsing one location: list its items, select some, and delete the selection through the guard.
 @MainActor
 final class StorageLocationBrowserViewModel: ObservableObject {
     @Published private(set) var items: [StorageLocationBrowserItem] = []
@@ -107,22 +103,19 @@ final class StorageLocationBrowserViewModel: ObservableObject {
     let basePath: String
 
     private let baseURL: URL
+    private let home: URL
     private let historyRecorder: any OperationHistoryRecording
     private var selectionAnchorItemID: String?
-    nonisolated private static let coreSimulatorDevicesLocationID = "core-simulator-devices"
-    nonisolated private static let simulatorLastUsedKeys = [
-        "lastBootedAt",
-        "lastBootedDate",
-        "lastUsedAt",
-    ]
 
     init(
         locationTitle: String,
         locationID: String,
         basePath: String,
         initialItems: [StorageLocationBrowserItem] = [],
-        historyRecorder: (any OperationHistoryRecording)? = nil
+        historyRecorder: (any OperationHistoryRecording)? = nil,
+        home: URL = FileManager.default.homeDirectoryForCurrentUser
     ) {
+        self.home = home
         self.locationTitle = locationTitle
         self.locationID = locationID
         self.basePath = basePath
@@ -169,6 +162,7 @@ final class StorageLocationBrowserViewModel: ObservableObject {
         selectedItemIDs.contains(itemID)
     }
 
+    /// Selects or deselects an item. With `extendingRange`, applies to everything between the last anchor and this item.
     func setSelected(_ isSelected: Bool, for itemID: String, extendingRange: Bool = false) {
         if extendingRange,
            let anchorItemID = selectionAnchorItemID,
@@ -254,6 +248,7 @@ final class StorageLocationBrowserViewModel: ObservableObject {
         }
     }
 
+    /// Deletes the selected items through `StorageShell.removeItem`. Returns nil if nothing was selected or a delete is running.
     func deleteSelected() async -> StorageBrowserDeletionResult? {
         guard !isDeleting else { return nil }
 
@@ -279,16 +274,22 @@ final class StorageLocationBrowserViewModel: ObservableObject {
             summary: "Deleting \(selectedItems.count) item(s) from \(locationTitle)."
         )
 
-        let deletionGuard = DeletionGuard.storage(home: FileManager.default.homeDirectoryForCurrentUser)
+        let deletionGuard = DeletionGuard.storage(home: home)
 
         do {
             let deletionResult = try await Task.detached(priority: .userInitiated) { () throws -> Int in
                 var deletedCount = 0
+                var freed: Int64 = 0
 
                 for (index, item) in selectedItems.enumerated() {
                     let itemURL = URL(fileURLWithPath: item.absolutePath)
-                    try StorageShell.removeItem(at: itemURL, guard: deletionGuard)
+                    do {
+                        try StorageShell.removeItem(at: itemURL, guard: deletionGuard)
+                    } catch {
+                        throw StorageDeleteFailure(freedBytes: freed, underlying: error)
+                    }
                     deletedCount += 1
+                    freed += item.sizeBytes
                     Task { @MainActor [weak self] in
                         self?.deletionProgress = StorageBrowserDeletionProgress(
                             completedUnitCount: index + 1,
@@ -321,7 +322,7 @@ final class StorageLocationBrowserViewModel: ObservableObject {
                 reclaimedBytes: expectedReclaimedBytes
             )
         } catch {
-            statusMessage = "Failed deleting selected items: \(error.localizedDescription)"
+            statusMessage = StorageDeleteFailure.unwrap(error).summary("delete selected items")
             historyRecorder.complete(
                 id: historyID,
                 status: .failed,
@@ -404,7 +405,7 @@ final class StorageLocationBrowserViewModel: ObservableObject {
         locationID: String,
         fileManager: FileManager
     ) -> CoreSimulatorMetadata? {
-        guard locationID == coreSimulatorDevicesLocationID, isDirectory else {
+        guard locationID == StorageViewModel.coreSimulatorDevicesLocationID, isDirectory else {
             return nil
         }
         guard UUID(uuidString: fallbackName) != nil else {
@@ -452,7 +453,7 @@ final class StorageLocationBrowserViewModel: ObservableObject {
     }
 
     nonisolated private static func simulatorLastUsedDate(from plistDictionary: [String: Any]) -> Date? {
-        for key in simulatorLastUsedKeys {
+        for key in SimctlParser.lastUsedKeys {
             guard let rawValue = plistDictionary[key] else {
                 continue
             }
@@ -580,57 +581,5 @@ final class StorageLocationBrowserViewModel: ObservableObject {
         case .unknown:
             return "Unknown last-used date"
         }
-    }
-
-    nonisolated private static func directorySize(at url: URL, fileManager: FileManager) -> Int64 {
-        var isDirectory: ObjCBool = false
-        guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
-            return 0
-        }
-
-        if !isDirectory.boolValue {
-            return fileSize(at: url)
-        }
-
-        let keys: Set<URLResourceKey> = [
-            .isRegularFileKey,
-            .totalFileAllocatedSizeKey,
-            .fileAllocatedSizeKey,
-            .fileSizeKey,
-        ]
-
-        guard let enumerator = fileManager.enumerator(
-            at: url,
-            includingPropertiesForKeys: Array(keys),
-            options: [],
-            errorHandler: { _, _ in true }
-        ) else {
-            return 0
-        }
-
-        var totalSize: Int64 = 0
-        for case let itemURL as URL in enumerator {
-            guard let values = try? itemURL.resourceValues(forKeys: keys),
-                  values.isRegularFile == true else {
-                continue
-            }
-
-            totalSize += Int64(values.totalFileAllocatedSize ?? values.fileAllocatedSize ?? values.fileSize ?? 0)
-        }
-
-        return totalSize
-    }
-
-    nonisolated private static func fileSize(at url: URL) -> Int64 {
-        let keys: Set<URLResourceKey> = [
-            .totalFileAllocatedSizeKey,
-            .fileAllocatedSizeKey,
-            .fileSizeKey,
-        ]
-
-        guard let values = try? url.resourceValues(forKeys: keys) else {
-            return 0
-        }
-        return Int64(values.totalFileAllocatedSize ?? values.fileAllocatedSize ?? values.fileSize ?? 0)
     }
 }

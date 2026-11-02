@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 
+/// The appearance choices offered in Settings.
 enum AppAppearanceMode: String, CaseIterable, Identifiable {
     case system
     case light
@@ -20,9 +21,10 @@ enum AppAppearanceMode: String, CaseIterable, Identifiable {
     }
 }
 
+/// User preferences, backed by `UserDefaults`. Each property writes through when it changes.
 @MainActor
 final class AppSettings: ObservableObject {
-    static let shared = AppSettings()
+    static let shared = AppSettings(defaults: .standard)
 
     private(set) var lastSelectedSection: String
 
@@ -42,14 +44,10 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(historyRetentionDays, forKey: Keys.historyRetentionDays) }
     }
 
-    @Published var confirmDestructiveActions: Bool {
-        didSet { defaults.set(confirmDestructiveActions, forKey: Keys.confirmDestructiveActions) }
-    }
-
     private let defaults: UserDefaults
 
     /// Internal so tests can inject a throwaway `UserDefaults` suite.
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults) {
         self.defaults = defaults
 
         lastSelectedSection = defaults.string(forKey: Keys.lastSelectedSection) ?? AppSection.storage.rawValue
@@ -62,32 +60,32 @@ final class AppSettings: ObservableObject {
         launchAtLoginEnabled = defaults.object(forKey: Keys.launchAtLoginEnabled) as? Bool ?? launchAtLoginDefault
 
         historyRetentionDays = defaults.object(forKey: Keys.historyRetentionDays) as? Int ?? 30
-        confirmDestructiveActions = defaults.object(forKey: Keys.confirmDestructiveActions) as? Bool ?? true
     }
 
+    /// Remembers the last open sidebar section so it can be reopened on launch.
     func persistLastSelectedSection(_ rawValue: String) {
         guard lastSelectedSection != rawValue else { return }
         lastSelectedSection = rawValue
         defaults.set(rawValue, forKey: Keys.lastSelectedSection)
     }
 
+    /// Restores section, history retention and appearance to their defaults. Launch-at-login is not changed.
     func resetToDefaults() {
         persistLastSelectedSection(AppSection.storage.rawValue)
         defaultSectionOnLaunch = AppSection.storage.rawValue
         reopenLastSectionOnLaunch = true
         historyRetentionDays = 30
-        confirmDestructiveActions = true
         defaults.set(AppAppearanceMode.system.rawValue, forKey: Keys.appearanceMode)
     }
 }
 
+/// `UserDefaults` keys for settings. Shared so the history store can read the retention days.
 enum AppSettingsKeys {
     static let lastSelectedSection = "settings.lastSelectedSection"
     static let defaultSectionOnLaunch = "settings.defaultSectionOnLaunch"
     static let reopenLastSectionOnLaunch = "settings.reopenLastSectionOnLaunch"
     static let launchAtLoginEnabled = "settings.launchAtLoginEnabled"
     static let historyRetentionDays = "settings.historyRetentionDays"
-    static let confirmDestructiveActions = "settings.confirmDestructiveActions"
     static let appearanceMode = "settings.appearanceMode"
 }
 
@@ -97,6 +95,5 @@ private enum Keys {
     static let reopenLastSectionOnLaunch = AppSettingsKeys.reopenLastSectionOnLaunch
     static let launchAtLoginEnabled = AppSettingsKeys.launchAtLoginEnabled
     static let historyRetentionDays = AppSettingsKeys.historyRetentionDays
-    static let confirmDestructiveActions = AppSettingsKeys.confirmDestructiveActions
     static let appearanceMode = AppSettingsKeys.appearanceMode
 }
