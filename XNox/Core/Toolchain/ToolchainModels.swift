@@ -1,15 +1,12 @@
 import Foundation
 
 enum DevTool: String, CaseIterable, Identifiable {
-    case xcodes
     case fastlane
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .xcodes:
-            return "xcodes"
         case .fastlane:
             return "fastlane"
         }
@@ -17,8 +14,6 @@ enum DevTool: String, CaseIterable, Identifiable {
 
     var minimumVersion: String {
         switch self {
-        case .xcodes:
-            return "1.6.0"
         case .fastlane:
             return "2.232.0"
         }
@@ -26,8 +21,6 @@ enum DevTool: String, CaseIterable, Identifiable {
 
     var installCommand: String {
         switch self {
-        case .xcodes:
-            return "brew install xcodesorg/made/xcodes"
         case .fastlane:
             return "brew install fastlane"
         }
@@ -35,8 +28,6 @@ enum DevTool: String, CaseIterable, Identifiable {
 
     var updateCommand: String {
         switch self {
-        case .xcodes:
-            return "brew upgrade xcodesorg/made/xcodes"
         case .fastlane:
             return "brew upgrade fastlane"
         }
@@ -44,8 +35,6 @@ enum DevTool: String, CaseIterable, Identifiable {
 
     var brewFormulaName: String {
         switch self {
-        case .xcodes:
-            return "xcodes"
         case .fastlane:
             return "fastlane"
         }
@@ -53,8 +42,6 @@ enum DevTool: String, CaseIterable, Identifiable {
 
     var brewInfoIdentifier: String {
         switch self {
-        case .xcodes:
-            return "xcodesorg/made/xcodes"
         case .fastlane:
             return "fastlane"
         }
