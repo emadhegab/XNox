@@ -10,11 +10,9 @@ struct SettingsView: View {
 
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var updateManager: AppUpdateManager
-    @EnvironmentObject private var licenseService: LicenseService
     @AppStorage(AppSettingsKeys.appearanceMode) private var appearanceModeRawValue = AppAppearanceMode.system.rawValue
 
     @State private var launchAtLoginError: String?
-    @State private var licenseKey = ""
 
     init(presentation: Presentation = .embedded) {
         self.presentation = presentation
@@ -30,7 +28,6 @@ struct SettingsView: View {
 
                 startupSection
                 appearanceSection
-                licenseSection
                 updatesSection
                 operationsSection
 
@@ -138,92 +135,6 @@ struct SettingsView: View {
            
         }
         .cardSurface()
-    }
-
-    private var licenseSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("License")
-                .font(XNoxTypography.cardTitle)
-                .foregroundStyle(XNoxPalette.textPrimary)
-
-            LabeledContent("Current plan") {
-                Text(licenseService.currentPlanTitle)
-                    .font(XNoxTypography.bodyStrong)
-            }
-
-            if let expirationLabel {
-                LabeledContent("Expires") {
-                    Text(expirationLabel)
-                        .font(XNoxTypography.bodyStrong)
-                }
-            }
-
-            TextField("Enter license key", text: $licenseKey)
-                .xNoxInputField()
-
-            HStack(spacing: 10) {
-                Button("Activate License") {
-                    Task {
-                        await licenseService.activateLicense(licenseKey)
-                        if licenseService.isProUnlocked {
-                            licenseKey = ""
-                        }
-                    }
-                }
-                .xNoxPrimaryButton()
-                .disabled(licenseService.isBusy || licenseKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                Button("Refresh Validation") {
-                    Task {
-                        await licenseService.refreshValidation()
-                    }
-                }
-                .xNoxSecondaryButton()
-                .disabled(licenseService.isBusy)
-
-                Button("Remove License") {
-                    licenseService.deactivateLicense()
-                }
-                .xNoxDestructiveButton()
-                .disabled(licenseService.isBusy || !licenseService.isProUnlocked)
-            }
-
-            if let statusMessage = licenseService.statusMessage {
-                Text(statusMessage)
-                    .font(XNoxTypography.caption)
-                    .foregroundStyle(XNoxPalette.textSecondary)
-            }
-
-            if let error = licenseService.lastErrorMessage {
-                Text(error)
-                    .font(XNoxTypography.caption)
-                    .foregroundStyle(XNoxPalette.error)
-            }
-
-            Text("Supports monthly, yearly, and lifetime licenses.")
-                .font(XNoxTypography.caption)
-                .foregroundStyle(XNoxPalette.textSecondary)
-        }
-        .cardSurface()
-    }
-
-    private var expirationLabel: String? {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-
-        switch licenseService.state {
-        case let .pro(entitlement), let .expired(entitlement):
-            if entitlement.plan.isLifetime {
-                return "Never (lifetime)"
-            }
-            guard let expiresAt = entitlement.expiresAt else {
-                return nil
-            }
-            return formatter.string(from: expiresAt)
-        case .free:
-            return nil
-        }
     }
 
     private var launchAtLoginBinding: Binding<Bool> {
