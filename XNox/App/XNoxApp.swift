@@ -32,13 +32,9 @@ struct XNoxApp: App {
                 .environmentObject(appState.xcodeManagerViewModel)
                 .environmentObject(appState.storageViewModel)
                 .environmentObject(appState.updateManager)
-                .environmentObject(appState.licenseService)
                 .environmentObject(settings)
                 .task(id: appearanceModeRawValue) {
                     applyAppAppearance(currentAppearanceMode)
-                }
-                .task {
-                    await appState.licenseService.bootstrap()
                 }
                 .font(XNoxTypography.body)
                 .frame(minWidth: 1100, minHeight: 700)

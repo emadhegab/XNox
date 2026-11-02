@@ -12,13 +12,11 @@ final class AppState: ObservableObject {
     let storageViewModel: StorageViewModel
     let updateManager: AppUpdateManager
     let settings: AppSettings
-    let licenseService: LicenseService
 
     init(
         activityCenter: GlobalActivityCenter? = nil,
         settings: AppSettings? = nil,
-        updateManager: AppUpdateManager? = nil,
-        licenseService: LicenseService? = nil
+        updateManager: AppUpdateManager? = nil
     ) {
         let resolvedSettings = settings ?? .shared
         let sharedActivityCenter = activityCenter ?? GlobalActivityCenter()
@@ -27,7 +25,6 @@ final class AppState: ObservableObject {
         self.storageViewModel = StorageViewModel(activityCenter: sharedActivityCenter)
         self.updateManager = updateManager ?? AppUpdateManager()
         self.settings = resolvedSettings
-        self.licenseService = licenseService ?? LicenseService()
 
         if resolvedSettings.reopenLastSectionOnLaunch,
            let persistedSection = AppSection(rawValue: resolvedSettings.lastSelectedSection) {
@@ -41,9 +38,5 @@ final class AppState: ObservableObject {
 
     func presentSettingsModal() {
         isSettingsModalPresented = true
-    }
-
-    func openLicenseSettings() {
-        presentSettingsModal()
     }
 }

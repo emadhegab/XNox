@@ -51,13 +51,4 @@ enum AppSection: String, CaseIterable, Hashable {
             return "gearshape"
         }
     }
-
-    var requiresPro: Bool {
-        switch self {
-        case .xcodes, .simulator, .signing, .devices:
-            return true
-        case .dashboard, .history, .settings, .storage:
-            return false
-        }
-    }
 }
