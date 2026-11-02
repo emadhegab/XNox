@@ -10,7 +10,7 @@ struct AppRootView: View {
             SidebarView(selection: $sidebarSelection)
                 .background(XNoxPalette.sidebarBackground)
         } detail: {
-            detailView(for: appState.selectedSection ?? .dashboard)
+            detailView(for: appState.selectedSection ?? .storage)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .background(AppGradientBackground())
         }
@@ -65,8 +65,6 @@ struct AppRootView: View {
     @ViewBuilder
     private func detailView(for section: AppSection) -> some View {
         switch section {
-        case .dashboard:
-            DashboardView()
         case .simulator:
             SimulatorView()
         case .storage:

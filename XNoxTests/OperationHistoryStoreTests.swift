@@ -27,8 +27,8 @@ struct OperationHistoryStoreTests {
                 summary: "Completed"
             ),
             OperationLog(
-                feature: "Signing",
-                command: "fastlane match development",
+                feature: "Storage",
+                command: "rm -rf DerivedData",
                 startedAt: fixedNow.addingTimeInterval(-60),
                 endedAt: fixedNow.addingTimeInterval(-10),
                 exitCode: 0,
@@ -41,7 +41,7 @@ struct OperationHistoryStoreTests {
         let loaded = try store.loadLogs()
 
         #expect(loaded.count == 2)
-        #expect(loaded[0].command == "fastlane match development")
+        #expect(loaded[0].command == "rm -rf DerivedData")
         #expect(loaded[1].command == "xcodes install 16.4")
     }
 

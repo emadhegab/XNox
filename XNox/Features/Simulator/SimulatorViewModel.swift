@@ -1,7 +1,5 @@
 import Combine
-import CoreGraphics
 import Foundation
-import ApplicationServices
 
 struct SimulatorDevice: Identifiable, Hashable, Sendable {
     let id: String
@@ -273,43 +271,6 @@ actor SimulatorControlService {
         // Wait for readiness and then bring Simulator.app to the selected device window.
         _ = try? runSimctl(["bootstatus", udid, "-b"], timeoutSeconds: 120)
         launchSimulatorApp(forUDID: udid)
-    }
-
-    func attachSimulatorWindow(udid: String, expectedSimulatorName: String? = nil) throws -> CGRect? {
-        // Request UDID focus, then explicitly activate and select the intended Simulator window.
-        let canDriveSimulatorWindowMenu = AXIsProcessTrusted()
-        for attempt in 0 ..< 5 {
-            launchSimulatorApp(forUDID: udid)
-            activateSimulatorApplication()
-
-            guard let expectedSimulatorName else {
-                usleep(300_000)
-                return Self.firstVisibleSimulatorWindowFrame()
-            }
-
-            if canDriveSimulatorWindowMenu {
-                _ = focusSimulatorWindow(named: expectedSimulatorName)
-            }
-            usleep(700_000)
-
-            if Self.frontmostSimulatorWindowTitleContains(expectedSimulatorName) {
-                return Self.firstVisibleSimulatorWindowFrame()
-            }
-
-            // Allow one last fallthrough without throwing; attach panel logic can still resolve by mapping/frame.
-            if attempt == 4 { return nil }
-        }
-        return nil
-    }
-
-    func primeAttachedSimulatorWindows(udids: [String]) async {
-        for udid in udids {
-            _ = try? attachSimulatorWindow(udid: udid)
-        }
-    }
-
-    func currentSimulatorWindowFrame() -> CGRect? {
-        Self.firstVisibleSimulatorWindowFrame()
     }
 
     func eraseSimulator(udid: String) throws {
@@ -754,131 +715,6 @@ actor SimulatorControlService {
         )
     }
 
-    private func activateSimulatorApplication() {
-        _ = try? runCommand(
-            executable: "/usr/bin/osascript",
-            arguments: ["-e", "tell application \"Simulator\" to activate"],
-            timeoutSeconds: 5
-        )
-    }
-
-    private func focusSimulatorWindow(named expectedSimulatorName: String) -> Bool {
-        let trimmedName = expectedSimulatorName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else { return false }
-
-        let escapedName = applescriptEscaped(trimmedName)
-        let scriptLines = [
-            "tell application \"Simulator\" to activate",
-            "tell application \"System Events\"",
-            "if not (exists process \"Simulator\") then return false",
-            "tell process \"Simulator\"",
-            "set candidateName to \"\(escapedName)\"",
-            "try",
-            "click menu item candidateName of menu 1 of menu bar item \"Window\" of menu bar 1",
-            "return true",
-            "on error",
-            "set itemNames to name of every menu item of menu 1 of menu bar item \"Window\" of menu bar 1",
-            "repeat with itemName in itemNames",
-            "if (itemName as text) contains candidateName then",
-            "click menu item (itemName as text) of menu 1 of menu bar item \"Window\" of menu bar 1",
-            "return true",
-            "end if",
-            "end repeat",
-            "return false",
-            "end try",
-            "end tell",
-            "end tell",
-        ]
-
-        var arguments: [String] = []
-        for line in scriptLines {
-            arguments.append(contentsOf: ["-e", line])
-        }
-
-        guard let output = try? runCommand(
-            executable: "/usr/bin/osascript",
-            arguments: arguments,
-            timeoutSeconds: 5
-        ) else {
-            return false
-        }
-
-        return output.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "true"
-    }
-
-    private func applescriptEscaped(_ value: String) -> String {
-        value
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-    }
-
-    nonisolated private static func firstVisibleSimulatorWindowFrame() -> CGRect? {
-        guard let windowInfoList = CGWindowListCopyWindowInfo(
-            [.optionOnScreenOnly, .excludeDesktopElements],
-            kCGNullWindowID
-        ) as? [[String: Any]] else {
-            return nil
-        }
-
-        for windowInfo in windowInfoList {
-            guard let ownerName = windowInfo[kCGWindowOwnerName as String] as? String,
-                  ownerName == "Simulator" else {
-                continue
-            }
-
-            let layer = (windowInfo[kCGWindowLayer as String] as? NSNumber)?.intValue ?? 0
-            guard layer == 0 else { continue }
-
-            guard let boundsDictionary = windowInfo[kCGWindowBounds as String] as? [String: Any],
-                  let x = Self.cgFloatValue(boundsDictionary["X"]),
-                  let y = Self.cgFloatValue(boundsDictionary["Y"]),
-                  let width = Self.cgFloatValue(boundsDictionary["Width"]),
-                  let height = Self.cgFloatValue(boundsDictionary["Height"]),
-                  width > 0,
-                  height > 0 else {
-                continue
-            }
-
-            return CGRect(x: x, y: y, width: width, height: height)
-        }
-
-        return nil
-    }
-
-    nonisolated private static func frontmostSimulatorWindowTitleContains(_ expectedName: String) -> Bool {
-        let normalizedExpectedName = expectedName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !normalizedExpectedName.isEmpty else { return false }
-
-        guard let windowInfoList = CGWindowListCopyWindowInfo(
-            [.optionOnScreenOnly, .excludeDesktopElements],
-            kCGNullWindowID
-        ) as? [[String: Any]] else {
-            return false
-        }
-
-        guard let firstSimulatorWindow = windowInfoList.first(where: { windowInfo in
-            guard let ownerName = windowInfo[kCGWindowOwnerName as String] as? String,
-                  ownerName == "Simulator" else { return false }
-            let layer = (windowInfo[kCGWindowLayer as String] as? NSNumber)?.intValue ?? 0
-            return layer == 0
-        }) else {
-            return false
-        }
-
-        let title = ((firstSimulatorWindow[kCGWindowName as String] as? String) ?? "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-        return !title.isEmpty && title.contains(normalizedExpectedName)
-    }
-
-    nonisolated private static func cgFloatValue(_ raw: Any?) -> CGFloat? {
-        if let value = raw as? CGFloat { return value }
-        if let value = raw as? Double { return CGFloat(value) }
-        if let value = raw as? Int { return CGFloat(value) }
-        if let value = raw as? NSNumber { return CGFloat(value.doubleValue) }
-        return nil
-    }
-
     private func readableRuntimeName(from runtimeIdentifier: String) -> String {
         runtimeIdentifier
             .replacingOccurrences(of: "com.apple.CoreSimulator.SimRuntime.", with: "")
@@ -1212,7 +1048,6 @@ actor SimulatorControlService {
     @MainActor
     final class SimulatorViewModel: ObservableObject {
     static let shared = SimulatorViewModel()
-    nonisolated private static let attachedSimulatorUDIDsKey = "simulator.attached.udids"
     nonisolated private static let localeIdentifierKey = "simulator.localeIdentifier"
     nonisolated private static let urlToOpenKey = "simulator.urlToOpen"
     nonisolated private static let statusBarTimeKey = "simulator.statusBar.time"
@@ -1221,14 +1056,11 @@ actor SimulatorControlService {
     nonisolated private static let statusBarCellularBarsKey = "simulator.statusBar.cellularBars"
     nonisolated private static let statusBarBatteryStateKey = "simulator.statusBar.batteryState"
     nonisolated private static let statusBarBatteryLevelKey = "simulator.statusBar.batteryLevel"
-    nonisolated private static let localeShouldReapplyKey = "simulator.locale.shouldReapply"
-    nonisolated private static let statusBarShouldReapplyKey = "simulator.statusBar.shouldReapply"
 
     @Published var simulators: [SimulatorDevice] = []
     @Published var runtimes: [SimulatorRuntime] = []
     @Published var deviceTypes: [SimulatorDeviceType] = []
     @Published var selectedSimulatorUDID: String?
-    @Published private(set) var persistedAttachedSimulatorUDIDs: Set<String> = []
 
     @Published var newSimulatorName = "XNox iPhone"
     @Published var selectedRuntimeIdentifier = ""
@@ -1247,11 +1079,9 @@ actor SimulatorControlService {
 
     @Published var statusMessage = "Ready to manage simulators."
     @Published var isRefreshing = false
+    /// Set when `simctl` failed and no devices could be listed; nil after a successful load.
+    @Published private(set) var loadError: String?
     @Published var isPerformingAction = false
-    @Published var attachedSimulatorWindowFrame: CGRect?
-    private(set) var attachedSimulatorWindowFramesByUDID: [String: CGRect] = [:]
-
-    private var didRunStartupRestore = false
 
     var isBusy: Bool {
         isRefreshing || isPerformingAction
@@ -1276,6 +1106,12 @@ actor SimulatorControlService {
         configurePreferencePersistence()
     }
 
+    /// Returns the catalog warnings as an error only when they left us with no devices at all.
+    nonisolated static func loadError(warnings: [String], simulatorCount: Int) -> String? {
+        guard simulatorCount == 0, !warnings.isEmpty else { return nil }
+        return warnings.joined(separator: " | ")
+    }
+
     func refresh() async {
         guard !isRefreshing else { return }
         isRefreshing = true
@@ -1286,6 +1122,7 @@ actor SimulatorControlService {
 
         do {
             let warnings = try await reloadCatalog(preferredSelection: selectedSimulatorUDID)
+            loadError = Self.loadError(warnings: warnings, simulatorCount: simulators.count)
             if warnings.isEmpty {
                 if runtimes.isEmpty || deviceTypes.isEmpty {
                     statusMessage = "Loaded \(simulators.count) simulator(s), but runtimes/types are empty. Verify Xcode and simulator runtimes are installed."
@@ -1296,6 +1133,7 @@ actor SimulatorControlService {
                 statusMessage = "Loaded \(simulators.count) simulator(s), \(runtimes.count) runtime(s), \(deviceTypes.count) device type(s). \(warnings.joined(separator: " | "))"
             }
         } catch {
+            loadError = simulators.isEmpty ? error.localizedDescription : nil
             statusMessage = error.localizedDescription
         }
     }
@@ -1368,60 +1206,6 @@ actor SimulatorControlService {
         ) { udid in
             try await self.service.bootSimulator(udid: udid)
         }
-    }
-
-    func attachSelectedSimulator() async {
-        guard !isPerformingAction else { return }
-        guard let udid = selectedSimulatorUDID else {
-            statusMessage = SimulatorControlError.noSimulatorSelected.localizedDescription
-            return
-        }
-        let expectedSimulatorName = selectedSimulator?.name
-
-        isPerformingAction = true
-        defer { isPerformingAction = false }
-        let historyID = historyRecorder.start(
-            feature: "Simulator",
-            command: "open -a Simulator --args -CurrentDeviceUDID \(udid)",
-            summary: "Attaching actions to simulator window for \(udid)."
-        )
-
-        do {
-            let matchedFrame = try await service.attachSimulatorWindow(
-                udid: udid,
-                expectedSimulatorName: expectedSimulatorName
-            )
-            if let matchedFrame {
-                attachedSimulatorWindowFrame = matchedFrame
-                attachedSimulatorWindowFramesByUDID[udid] = matchedFrame
-            } else {
-                let fallbackFrame = await service.currentSimulatorWindowFrame()
-                attachedSimulatorWindowFrame = fallbackFrame
-                if let fallbackFrame {
-                    attachedSimulatorWindowFramesByUDID[udid] = fallbackFrame
-                }
-            }
-            statusMessage = "Attached to simulator window."
-            historyRecorder.complete(
-                id: historyID,
-                status: .success,
-                summary: statusMessage,
-                exitCode: 0
-            )
-        } catch {
-            attachedSimulatorWindowFrame = nil
-            statusMessage = error.localizedDescription
-            historyRecorder.complete(
-                id: historyID,
-                status: .failed,
-                summary: statusMessage,
-                exitCode: 1
-            )
-        }
-    }
-
-    func currentSimulatorWindowFrame() async -> CGRect? {
-        await service.currentSimulatorWindowFrame()
     }
 
     func eraseSelectedSimulator() async {
@@ -1521,10 +1305,7 @@ actor SimulatorControlService {
         await performAction(
             udid: udid,
             commandDescription: "xcrun simctl spawn <udid> defaults write -g AppleLocale \(locale)",
-            successMessage: "Set locale to \(locale). If UI locale does not refresh immediately, relaunch the app in simulator.",
-            onSuccess: {
-                UserDefaults.standard.set(true, forKey: Self.localeShouldReapplyKey)
-            }
+            successMessage: "Set locale to \(locale). If UI locale does not refresh immediately, relaunch the app in simulator."
         ) { udid in
             try await self.service.bootSimulator(udid: udid)
             try await self.service.setLocale(udid: udid, localeIdentifier: locale)
@@ -1622,10 +1403,7 @@ actor SimulatorControlService {
         await performAction(
             udid: udid,
             commandDescription: "xcrun simctl status_bar <udid> override ...",
-            successMessage: "Applied status bar override.",
-            onSuccess: {
-                UserDefaults.standard.set(true, forKey: Self.statusBarShouldReapplyKey)
-            }
+            successMessage: "Applied status bar override."
         ) { udid in
             try await self.service.bootSimulator(udid: udid)
             try await self.service.overrideStatusBar(udid: udid, config: config)
@@ -1644,49 +1422,10 @@ actor SimulatorControlService {
         await performAction(
             udid: udid,
             commandDescription: "xcrun simctl status_bar <udid> clear",
-            successMessage: "Cleared status bar override.",
-            onSuccess: {
-                UserDefaults.standard.set(false, forKey: Self.statusBarShouldReapplyKey)
-            }
+            successMessage: "Cleared status bar override."
         ) { udid in
             try await self.service.bootSimulator(udid: udid)
             try await self.service.clearStatusBar(udid: udid)
-        }
-    }
-
-    func reapplyPersistedOverrides(to udid: String) async {
-        let localeShouldReapply = UserDefaults.standard.bool(forKey: Self.localeShouldReapplyKey)
-        let statusBarShouldReapply = UserDefaults.standard.bool(forKey: Self.statusBarShouldReapplyKey)
-        guard localeShouldReapply || statusBarShouldReapply else { return }
-
-        do {
-            try await service.bootSimulator(udid: udid)
-
-            if localeShouldReapply {
-                let normalizedLocale = localeIdentifier
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                    .replacingOccurrences(of: "-", with: "_")
-                if !normalizedLocale.isEmpty {
-                    try await service.setLocale(udid: udid, localeIdentifier: normalizedLocale)
-                }
-            }
-
-            if statusBarShouldReapply {
-                let trimmedTime = statusBarTime.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !trimmedTime.isEmpty {
-                    let config = SimulatorStatusBarOverrideConfig(
-                        time: trimmedTime,
-                        network: statusBarNetwork,
-                        wifiBars: min(max(statusBarWifiBars, 0), 3),
-                        cellularBars: min(max(statusBarCellularBars, 0), 4),
-                        batteryState: statusBarBatteryState,
-                        batteryLevel: min(max(statusBarBatteryLevel, 0), 100)
-                    )
-                    try await service.overrideStatusBar(udid: udid, config: config)
-                }
-            }
-        } catch {
-            statusMessage = "Restore apply failed for \(udid): \(error.localizedDescription)"
         }
     }
 
@@ -1694,103 +1433,6 @@ actor SimulatorControlService {
         selectedMediaURLs = urls.sorted {
             $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending
         }
-    }
-
-    func setSimulatorAttached(udid: String, isAttached: Bool) {
-        if isAttached {
-            persistedAttachedSimulatorUDIDs.insert(udid)
-        } else {
-            persistedAttachedSimulatorUDIDs.remove(udid)
-            attachedSimulatorWindowFramesByUDID.removeValue(forKey: udid)
-        }
-        persistAttachedSimulatorUDIDs()
-    }
-
-    func detachAllAttachedSimulators() {
-        persistedAttachedSimulatorUDIDs.removeAll()
-        attachedSimulatorWindowFramesByUDID.removeAll()
-        persistAttachedSimulatorUDIDs()
-    }
-
-    func restorePersistedAttachedSimulatorsOnAppLaunch() async -> [SimulatorDevice] {
-        guard !didRunStartupRestore else { return [] }
-        didRunStartupRestore = true
-
-        await refresh()
-
-        let bootedSimulatorUDIDs = Set(
-            simulators
-                .filter(\.isBooted)
-                .map(\.udid)
-        )
-        let staleAttachedUDIDs = persistedAttachedSimulatorUDIDs.subtracting(bootedSimulatorUDIDs)
-        if !staleAttachedUDIDs.isEmpty {
-            persistedAttachedSimulatorUDIDs.subtract(staleAttachedUDIDs)
-            for udid in staleAttachedUDIDs {
-                attachedSimulatorWindowFramesByUDID.removeValue(forKey: udid)
-            }
-            persistAttachedSimulatorUDIDs()
-        }
-
-        var restoredUDIDs: [String] = []
-        let simulatorNameByUDID = Dictionary(uniqueKeysWithValues: simulators.map { ($0.udid, $0.name) })
-        for udid in persistedAttachedSimulatorUDIDs {
-            do {
-                let expectedName = simulatorNameByUDID[udid]
-                let matchedFrame = try await service.attachSimulatorWindow(
-                    udid: udid,
-                    expectedSimulatorName: expectedName
-                )
-                if let matchedFrame {
-                    attachedSimulatorWindowFrame = matchedFrame
-                    attachedSimulatorWindowFramesByUDID[udid] = matchedFrame
-                } else {
-                    let fallbackFrame = await service.currentSimulatorWindowFrame()
-                    attachedSimulatorWindowFrame = fallbackFrame
-                    if let fallbackFrame {
-                        attachedSimulatorWindowFramesByUDID[udid] = fallbackFrame
-                    }
-                }
-                await reapplyPersistedOverrides(to: udid)
-                restoredUDIDs.append(udid)
-            } catch {
-                continue
-            }
-        }
-
-        _ = try? await reloadCatalog(preferredSelection: selectedSimulatorUDID)
-
-        return restoredUDIDs.compactMap { restoredUDID in
-            simulators.first(where: { $0.udid == restoredUDID })
-        }
-    }
-
-    func primeAttachedSimulatorWindows(udids: [String]) async {
-        guard !udids.isEmpty else { return }
-        let nameByUDID = Dictionary(uniqueKeysWithValues: simulators.map { ($0.udid, $0.name) })
-        for udid in udids {
-            let expectedName = nameByUDID[udid]
-            do {
-                let matchedFrame = try await service.attachSimulatorWindow(
-                    udid: udid,
-                    expectedSimulatorName: expectedName
-                )
-                if let matchedFrame {
-                    attachedSimulatorWindowFrame = matchedFrame
-                    attachedSimulatorWindowFramesByUDID[udid] = matchedFrame
-                }
-            } catch {
-                continue
-            }
-        }
-        if attachedSimulatorWindowFrame == nil {
-            let fallbackFrame = await service.currentSimulatorWindowFrame()
-            attachedSimulatorWindowFrame = fallbackFrame
-        }
-    }
-
-    func attachedSimulatorFrames(for udids: Set<String>) -> [String: CGRect] {
-        attachedSimulatorWindowFramesByUDID.filter { udids.contains($0.key) }
     }
 
     func removeSelectedMedia(at offsets: IndexSet) {
@@ -1802,7 +1444,6 @@ actor SimulatorControlService {
     private func performSelectedAction(
         commandDescription: String,
         successMessage: String,
-        onSuccess: (() -> Void)? = nil,
         action: @escaping (_ udid: String) async throws -> Void
     ) async {
         guard !isPerformingAction else { return }
@@ -1816,7 +1457,6 @@ actor SimulatorControlService {
             udid: udid,
             commandDescription: commandDescription,
             successMessage: successMessage,
-            onSuccess: onSuccess,
             action: action
         )
     }
@@ -1825,7 +1465,6 @@ actor SimulatorControlService {
         udid: String,
         commandDescription: String,
         successMessage: String,
-        onSuccess: (() -> Void)? = nil,
         action: @escaping (_ udid: String) async throws -> Void
     ) async {
         isPerformingAction = true
@@ -1839,7 +1478,6 @@ actor SimulatorControlService {
         do {
             try await action(udid)
             _ = try await reloadCatalog(preferredSelection: udid)
-            onSuccess?()
             statusMessage = successMessage
             historyRecorder.complete(
                 id: historyID,
@@ -1903,9 +1541,6 @@ actor SimulatorControlService {
 
     private func loadPersistedPreferences() {
         let defaults = UserDefaults.standard
-        let attachedUDIDs = defaults.array(forKey: Self.attachedSimulatorUDIDsKey) as? [String] ?? []
-        persistedAttachedSimulatorUDIDs = Set(attachedUDIDs)
-
         localeIdentifier = defaults.string(forKey: Self.localeIdentifierKey) ?? localeIdentifier
         urlToOpen = defaults.string(forKey: Self.urlToOpenKey) ?? urlToOpen
         statusBarTime = defaults.string(forKey: Self.statusBarTimeKey) ?? statusBarTime
@@ -1928,12 +1563,6 @@ actor SimulatorControlService {
         }
         if defaults.object(forKey: Self.statusBarBatteryLevelKey) != nil {
             statusBarBatteryLevel = defaults.integer(forKey: Self.statusBarBatteryLevelKey)
-        }
-        if defaults.object(forKey: Self.localeShouldReapplyKey) == nil {
-            defaults.set(false, forKey: Self.localeShouldReapplyKey)
-        }
-        if defaults.object(forKey: Self.statusBarShouldReapplyKey) == nil {
-            defaults.set(false, forKey: Self.statusBarShouldReapplyKey)
         }
     }
 
@@ -1969,12 +1598,5 @@ actor SimulatorControlService {
         $statusBarBatteryLevel
             .sink { UserDefaults.standard.set($0, forKey: Self.statusBarBatteryLevelKey) }
             .store(in: &cancellables)
-    }
-
-    private func persistAttachedSimulatorUDIDs() {
-        UserDefaults.standard.set(
-            Array(persistedAttachedSimulatorUDIDs).sorted(),
-            forKey: Self.attachedSimulatorUDIDsKey
-        )
     }
 }

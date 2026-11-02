@@ -18,10 +18,6 @@ struct XNoxApp: App {
         } catch {
             NSLog("XNox launch-at-login sync failed: %@", error.localizedDescription)
         }
-
-        Task { @MainActor in
-            SimulatorAttachmentBootstrap.shared.startIfNeeded()
-        }
     }
 
     var body: some Scene {
@@ -75,19 +71,12 @@ private extension XNoxApp {
 private struct XNoxMenuBarView: View {
     @Environment(\.openWindow) private var openWindow
     @EnvironmentObject private var appState: AppState
-    @ObservedObject private var simulatorViewModel = SimulatorViewModel.shared
 
     var body: some View {
         Button("Open XNox") {
             NSApp.activate(ignoringOtherApps: true)
             openWindow(id: "main")
         }
-
-        Button("Detach Attached Simulators") {
-            simulatorViewModel.detachAllAttachedSimulators()
-            SimulatorActionsPanelManager.shared.closeAll()
-        }
-        .disabled(simulatorViewModel.persistedAttachedSimulatorUDIDs.isEmpty)
 
         Divider()
 

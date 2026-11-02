@@ -52,10 +52,10 @@ final class AppSettings: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
 
-        lastSelectedSection = defaults.string(forKey: Keys.lastSelectedSection) ?? AppSection.dashboard.rawValue
-        // Installs that persisted a removed section (e.g. "xcodes") fall back to the dashboard.
-        let persistedDefault = defaults.string(forKey: Keys.defaultSectionOnLaunch) ?? AppSection.dashboard.rawValue
-        defaultSectionOnLaunch = AppSection(rawValue: persistedDefault) == nil ? AppSection.dashboard.rawValue : persistedDefault
+        lastSelectedSection = defaults.string(forKey: Keys.lastSelectedSection) ?? AppSection.storage.rawValue
+        // Installs that persisted a removed section (e.g. "xcodes") fall back to Storage.
+        let persistedDefault = defaults.string(forKey: Keys.defaultSectionOnLaunch) ?? AppSection.storage.rawValue
+        defaultSectionOnLaunch = AppSection(rawValue: persistedDefault) == nil ? AppSection.storage.rawValue : persistedDefault
         reopenLastSectionOnLaunch = defaults.object(forKey: Keys.reopenLastSectionOnLaunch) as? Bool ?? true
 
         let launchAtLoginDefault = LaunchAtLoginManager.isEnabled
@@ -72,8 +72,8 @@ final class AppSettings: ObservableObject {
     }
 
     func resetToDefaults() {
-        persistLastSelectedSection(AppSection.dashboard.rawValue)
-        defaultSectionOnLaunch = AppSection.dashboard.rawValue
+        persistLastSelectedSection(AppSection.storage.rawValue)
+        defaultSectionOnLaunch = AppSection.storage.rawValue
         reopenLastSectionOnLaunch = true
         historyRetentionDays = 30
         confirmDestructiveActions = true
