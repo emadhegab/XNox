@@ -70,3 +70,4 @@ build/
 # Local signing overrides
 Local.xcconfig
 CLAUDE.local.md
+DerivedData/

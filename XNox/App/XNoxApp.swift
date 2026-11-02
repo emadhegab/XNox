@@ -31,14 +31,9 @@ struct XNoxApp: App {
                 .environmentObject(appState.activityCenter)
                 .environmentObject(appState.xcodeManagerViewModel)
                 .environmentObject(appState.storageViewModel)
-                .environmentObject(appState.updateManager)
-                .environmentObject(appState.licenseService)
                 .environmentObject(settings)
                 .task(id: appearanceModeRawValue) {
                     applyAppAppearance(currentAppearanceMode)
-                }
-                .task {
-                    await appState.licenseService.bootstrap()
                 }
                 .font(XNoxTypography.body)
                 .frame(minWidth: 1100, minHeight: 700)
@@ -118,13 +113,6 @@ private struct XNoxAppCommands: Commands {
     @ObservedObject var appState: AppState
 
     var body: some Commands {
-        CommandGroup(after: .appInfo) {
-            Button("Check for Updates…") {
-                appState.updateManager.checkForUpdates()
-            }
-            .disabled(!appState.updateManager.canCheckForUpdates)
-        }
-
         CommandGroup(replacing: .appSettings) {
             Button("Settings...") {
                 NSApp.activate(ignoringOtherApps: true)

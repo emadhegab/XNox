@@ -3,7 +3,6 @@ import SwiftUI
 struct AppRootView: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var activityCenter: GlobalActivityCenter
-    @EnvironmentObject private var licenseService: LicenseService
     @State private var sidebarSelection: AppSection?
 
     var body: some View {
@@ -65,34 +64,25 @@ struct AppRootView: View {
 
     @ViewBuilder
     private func detailView(for section: AppSection) -> some View {
-        if section.requiresPro && !licenseService.isProUnlocked {
-            PremiumLockedView(
-                sectionTitle: section.title,
-                onOpenSettings: {
-                    appState.presentSettingsModal()
-                }
-            )
-        } else {
-            switch section {
-            case .dashboard:
-                DashboardView()
-            case .xcodes:
-                XcodeManagerView()
-            case .simulator:
-                SimulatorView()
-            case .storage:
-                StorageView()
-            case .signing:
-                SigningView()
-            case .devices:
-                DeviceRegistrationView {
-                    appState.selectedSection = .signing
-                }
-            case .history:
-                OperationsHistoryView()
-            case .settings:
-                SettingsView(presentation: .embedded)
+        switch section {
+        case .dashboard:
+            DashboardView()
+        case .xcodes:
+            XcodeManagerView()
+        case .simulator:
+            SimulatorView()
+        case .storage:
+            StorageView()
+        case .signing:
+            SigningView()
+        case .devices:
+            DeviceRegistrationView {
+                appState.selectedSection = .signing
             }
+        case .history:
+            OperationsHistoryView()
+        case .settings:
+            SettingsView(presentation: .embedded)
         }
     }
 }

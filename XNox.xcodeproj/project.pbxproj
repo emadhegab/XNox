@@ -6,9 +6,6 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		D1BFA5B82F58E959007D7817 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = D1BFA5B72F58E959007D7817 /* Sparkle */; };
-/* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		D14CC7F02F3B5C6400FBE574 /* PBXContainerItemProxy */ = {
@@ -34,22 +31,10 @@
 		A0C0FF1600000000000000A1 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		D1BFA5BA2F58EB72007D7817 /* Exceptions for "XNox" folder in "XNox" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = D14CC7DF2F3B5C6200FBE574 /* XNox */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D14CC7E22F3B5C6200FBE574 /* XNox */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				D1BFA5BA2F58EB72007D7817 /* Exceptions for "XNox" folder in "XNox" target */,
-			);
 			path = XNox;
 			sourceTree = "<group>";
 		};
@@ -70,7 +55,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D1BFA5B82F58E959007D7817 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -139,9 +123,6 @@
 				D14CC7E22F3B5C6200FBE574 /* XNox */,
 			);
 			name = XNox;
-			packageProductDependencies = (
-				D1BFA5B72F58E959007D7817 /* Sparkle */,
-			);
 			productName = XNox;
 			productReference = D14CC7E02F3B5C6200FBE574 /* XNox.app */;
 			productType = "com.apple.product-type.application";
@@ -163,8 +144,6 @@
 				D14CC7F22F3B5C6400FBE574 /* XNoxTests */,
 			);
 			name = XNoxTests;
-			packageProductDependencies = (
-			);
 			productName = XNoxTests;
 			productReference = D14CC7EF2F3B5C6400FBE574 /* XNoxTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -186,8 +165,6 @@
 				D14CC7FC2F3B5C6400FBE574 /* XNoxUITests */,
 			);
 			name = XNoxUITests;
-			packageProductDependencies = (
-			);
 			productName = XNoxUITests;
 			productReference = D14CC7F92F3B5C6400FBE574 /* XNoxUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -224,9 +201,6 @@
 			);
 			mainGroup = D14CC7D72F3B5C6200FBE574;
 			minimizedProjectReferenceProxies = 1;
-			packageReferences = (
-				D1BFA5B62F58E959007D7817 /* XCRemoteSwiftPackageReference "Sparkle" */,
-			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D14CC7E12F3B5C6200FBE574 /* Products */;
 			projectDirPath = "";
@@ -438,7 +412,6 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = XNox/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -471,7 +444,6 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = XNox/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -607,24 +579,7 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		D1BFA5B62F58E959007D7817 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sparkle-project/Sparkle";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.9.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
 
-/* Begin XCSwiftPackageProductDependency section */
-		D1BFA5B72F58E959007D7817 /* Sparkle */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = D1BFA5B62F58E959007D7817 /* XCRemoteSwiftPackageReference "Sparkle" */;
-			productName = Sparkle;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D14CC7D82F3B5C6200FBE574 /* Project object */;
 }

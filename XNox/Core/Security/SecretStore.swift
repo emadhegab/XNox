@@ -5,7 +5,6 @@ enum SecretKey: String, CaseIterable {
     case fastlaneSession
     case matchPassword
     case gitAccessToken
-    case licensePayload
 }
 
 protocol SecretStoring {
