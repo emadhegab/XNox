@@ -50,8 +50,8 @@ struct SimulatorView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: XNoxTheme.cardSpacing) {
                 SectionHeaderView(
-                    title: "Simulator",
-                    subtitle: "Manage simulator inventory, and run focused actions by category."
+                    title: "Simulators",
+                    subtitle: "Manage simulator inventory and run focused actions by category."
                 )
 
                 inventoryCard
@@ -126,8 +126,8 @@ struct SimulatorView: View {
 
             if categoriesWithDevices.isEmpty, let loadError = viewModel.loadError {
                 EmptyStateView(
-                    title: "Simulators unavailable",
-                    message: "\(loadError)\nCheck that Xcode is installed and `xcode-select -p` points to it.",
+                    title: "Couldn't load simulators",
+                    message: "\(loadError)\nCheck that Xcode is installed and that xcode-select -p points to it.",
                     systemImage: "exclamationmark.triangle"
                 )
                 .frame(maxWidth: .infinity)

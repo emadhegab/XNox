@@ -1,7 +1,5 @@
 import Combine
-import CoreGraphics
 import Foundation
-import ApplicationServices
 
 struct SimulatorDevice: Identifiable, Hashable, Sendable {
     let id: String
