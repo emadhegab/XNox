@@ -44,7 +44,6 @@ struct SimulatorView: View {
     @State private var expandedCategories: Set<SimulatorDeviceCategory> = []
     @State private var renameTargetSimulator: SimulatorDevice?
     @State private var renameDraft = ""
-    @State private var attachedSimulatorUDIDs: Set<String> = []
     @State private var actionCategoryBySimulator: [String: SimulatorActionCategory] = [:]
 
     var body: some View {
@@ -52,7 +51,7 @@ struct SimulatorView: View {
             VStack(alignment: .leading, spacing: XNoxTheme.cardSpacing) {
                 SectionHeaderView(
                     title: "Simulator",
-                    subtitle: "Manage simulator inventory, attach active devices, and run focused actions by category."
+                    subtitle: "Manage simulator inventory, and run focused actions by category."
                 )
 
                 inventoryCard
@@ -63,11 +62,6 @@ struct SimulatorView: View {
         }
         .task {
             await viewModel.refresh()
-            await reapplyPersistedValuesOnLaunch()
-            syncAttachedStateFromPersistence()
-        }
-        .onChange(of: viewModel.simulators) {_, _ in
-            syncAttachedStateFromPersistence()
         }
         .fileImporter(
             isPresented: $isMediaPickerPresented,
@@ -275,8 +269,7 @@ struct SimulatorView: View {
 
     private func simulatorRow(_ simulator: SimulatorDevice) -> some View {
         let isSelected = simulator.udid == viewModel.selectedSimulatorUDID
-        let isAttached = attachedSimulatorUDIDs.contains(simulator.udid)
-        let isActive = isSelected || isAttached
+        let isActive = isSelected
 
         return VStack(alignment: .leading, spacing: 0) {
             Button {
@@ -325,10 +318,6 @@ struct SimulatorView: View {
                                 color: XNoxPalette.error
                             )
                         }
-
-                        if simulator.isBooted {
-                            attachToggleButton(for: simulator, isAttached: isAttached)
-                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -365,7 +354,6 @@ struct SimulatorView: View {
         )
         .clipped()
         .animation(.spring(response: 0.34, dampingFraction: 0.84), value: viewModel.selectedSimulatorUDID)
-        .animation(.spring(response: 0.34, dampingFraction: 0.84), value: attachedSimulatorUDIDs)
     }
 
     private func inlineActions(for simulator: SimulatorDevice) -> some View {
@@ -413,29 +401,6 @@ struct SimulatorView: View {
             .insetSurface()
         }
         .frame(maxWidth: 760, alignment: .leading)
-    }
-
-    @ViewBuilder
-    private func attachToggleButton(for simulator: SimulatorDevice, isAttached: Bool) -> some View {
-        if isAttached {
-            Button {
-                toggleAttach(for: simulator)
-            } label: {
-                Label("Detach from Sim", systemImage: "bolt.slash")
-            }
-            .xNoxSecondaryButton()
-            .disabled(viewModel.isBusy)
-            .help("Detach this simulator from the actions panel.")
-        } else {
-            Button {
-                toggleAttach(for: simulator)
-            } label: {
-                Label("Attach to Sim", systemImage: "bolt.fill")
-            }
-            .xNoxPrimaryButton()
-            .disabled(viewModel.isBusy)
-            .help("Attach this simulator to open quick actions panel.")
-        }
     }
 
     private func actionCategoryStrip(for simulator: SimulatorDevice) -> some View {
@@ -649,62 +614,6 @@ struct SimulatorView: View {
 
     private func selectedActionCategory(for simulator: SimulatorDevice) -> SimulatorActionCategory {
         actionCategoryBySimulator[simulator.udid] ?? .core
-    }
-
-    private func attach(to simulator: SimulatorDevice) {
-        viewModel.selectedSimulatorUDID = simulator.udid
-        actionCategoryBySimulator[simulator.udid] = actionCategoryBySimulator[simulator.udid] ?? .core
-        withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
-            attachedSimulatorUDIDs.insert(simulator.udid)
-        }
-        viewModel.setSimulatorAttached(udid: simulator.udid, isAttached: true)
-
-        Task {
-            await viewModel.attachSelectedSimulator()
-            let refreshedSimulator = viewModel.simulators.first(where: { $0.udid == simulator.udid }) ?? simulator
-            SimulatorActionsPanelManager.shared.show(
-                for: refreshedSimulator,
-                viewModel: viewModel,
-                anchorFrame: viewModel.attachedSimulatorWindowFrame
-            )
-            syncAttachedStateFromPersistence()
-        }
-    }
-
-    private func toggleAttach(for simulator: SimulatorDevice) {
-        if attachedSimulatorUDIDs.contains(simulator.udid) {
-            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
-                attachedSimulatorUDIDs.remove(simulator.udid)
-            }
-            SimulatorActionsPanelManager.shared.close(for: simulator.udid)
-            viewModel.setSimulatorAttached(udid: simulator.udid, isAttached: false)
-            syncAttachedStateFromPersistence()
-        } else {
-            attach(to: simulator)
-        }
-    }
-
-    private func syncAttachedStateFromPersistence() {
-        let bootedAttachedSimulators = viewModel.simulators.filter { simulator in
-            simulator.isBooted && viewModel.persistedAttachedSimulatorUDIDs.contains(simulator.udid)
-        }
-        let bootedAttachedUDIDs = Set(bootedAttachedSimulators.map(\.udid))
-        attachedSimulatorUDIDs = bootedAttachedUDIDs
-        SimulatorActionsPanelManager.shared.synchronizeAttachedSimulators(
-            bootedAttachedSimulators,
-            viewModel: viewModel,
-            preferredFramesByUDID: viewModel.attachedSimulatorFrames(for: bootedAttachedUDIDs)
-        )
-    }
-
-    private func reapplyPersistedValuesOnLaunch() async {
-        let bootedAttachedSimulators = viewModel.simulators.filter { simulator in
-            simulator.isBooted && viewModel.persistedAttachedSimulatorUDIDs.contains(simulator.udid)
-        }
-
-        for simulator in bootedAttachedSimulators {
-            await viewModel.reapplyPersistedOverrides(to: simulator.udid)
-        }
     }
 
     private func runForSimulator(_ simulator: SimulatorDevice, action: @escaping @MainActor () async -> Void) {
