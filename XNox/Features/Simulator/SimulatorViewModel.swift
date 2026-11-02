@@ -198,6 +198,12 @@ enum SimulatorControlError: LocalizedError {
 }
 
 actor SimulatorControlService {
+    private let runner: any CommandRunning
+
+    init(runner: any CommandRunning = ProcessCommandRunner()) {
+        self.runner = runner
+    }
+
     private let simulatorLastUsedKeys = [
         "lastBootedAt",
         "lastBootedDate",
@@ -258,8 +264,8 @@ actor SimulatorControlService {
     func bootSimulator(udid: String) throws {
         do {
             _ = try runSimctl(["boot", udid], timeoutSeconds: 90)
-        } catch let error as SimulatorControlError {
-            if case let .commandFailed(_, message) = error,
+        } catch let error as CommandError {
+            if case let .failed(_, message) = error,
                message.localizedCaseInsensitiveContains("already booted") ||
                message.localizedCaseInsensitiveContains("current state: Booted") {
                 // Already booted.
@@ -557,11 +563,7 @@ actor SimulatorControlService {
     }
 
     private func runSimctl(_ arguments: [String], timeoutSeconds: TimeInterval = 20) throws -> String {
-        try runCommand(
-            executable: "/usr/bin/xcrun",
-            arguments: ["simctl"] + arguments,
-            timeoutSeconds: timeoutSeconds
-        )
+        try runner.run("/usr/bin/xcrun", ["simctl"] + arguments, timeout: timeoutSeconds)
     }
 
     private func fetchSimulators(
@@ -614,104 +616,12 @@ actor SimulatorControlService {
         }
     }
 
-    private func runCommand(
-        executable: String,
-        arguments: [String],
-        timeoutSeconds: TimeInterval = 20
-    ) throws -> String {
-        let command = ([executable] + arguments).joined(separator: " ")
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = arguments
-
-        let fileManager = FileManager.default
-        let temporaryDirectory = fileManager.temporaryDirectory
-        let outputURL = temporaryDirectory.appendingPathComponent("xnox-simctl-\(UUID().uuidString)-out.log")
-        let errorURL = temporaryDirectory.appendingPathComponent("xnox-simctl-\(UUID().uuidString)-err.log")
-
-        fileManager.createFile(atPath: outputURL.path, contents: nil)
-        fileManager.createFile(atPath: errorURL.path, contents: nil)
-
-        guard let outputHandle = FileHandle(forWritingAtPath: outputURL.path),
-              let errorHandle = FileHandle(forWritingAtPath: errorURL.path) else {
-            throw SimulatorControlError.commandFailed(
-                command: command,
-                message: "Unable to open temporary output files."
-            )
-        }
-
-        process.standardOutput = outputHandle
-        process.standardError = errorHandle
-
-        let terminationSemaphore = DispatchSemaphore(value: 0)
-        process.terminationHandler = { _ in
-            terminationSemaphore.signal()
-        }
-
-        do {
-            try process.run()
-        } catch {
-            try? outputHandle.close()
-            try? errorHandle.close()
-            try? fileManager.removeItem(at: outputURL)
-            try? fileManager.removeItem(at: errorURL)
-            throw SimulatorControlError.commandFailed(
-                command: command,
-                message: error.localizedDescription
-            )
-        }
-
-        let completedInTime = terminationSemaphore.wait(timeout: .now() + timeoutSeconds) == .success
-        if !completedInTime, process.isRunning {
-            process.terminate()
-            _ = terminationSemaphore.wait(timeout: .now() + 2)
-        }
-
-        try? outputHandle.close()
-        try? errorHandle.close()
-
-        let outputData = (try? Data(contentsOf: outputURL)) ?? Data()
-        let errorData = (try? Data(contentsOf: errorURL)) ?? Data()
-        try? fileManager.removeItem(at: outputURL)
-        try? fileManager.removeItem(at: errorURL)
-
-        let outputText = String(decoding: outputData, as: UTF8.self)
-        let errorText = String(decoding: errorData, as: UTF8.self)
-
-        if !completedInTime {
-            let timeoutMessage = "Timed out after \(Int(timeoutSeconds))s."
-            let combinedTimeoutMessage = [timeoutMessage, errorText, outputText]
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-                .joined(separator: "\n")
-
-            throw SimulatorControlError.commandFailed(
-                command: command,
-                message: combinedTimeoutMessage
-            )
-        }
-
-        guard process.terminationStatus == 0 else {
-            let combinedMessage = [errorText, outputText]
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-                .joined(separator: "\n")
-
-            throw SimulatorControlError.commandFailed(
-                command: command,
-                message: combinedMessage
-            )
-        }
-
-        return outputText
-    }
-
     private func launchSimulatorApp(forUDID udid: String) {
         // Best-effort only: boot success should not fail if Simulator.app launch is blocked.
-        _ = try? runCommand(
-            executable: "/usr/bin/open",
-            arguments: ["-a", "Simulator", "--args", "-CurrentDeviceUDID", udid],
-            timeoutSeconds: 10
+        _ = try? runner.run(
+            "/usr/bin/open",
+            ["-a", "Simulator", "--args", "-CurrentDeviceUDID", udid],
+            timeout: 10
         )
     }
 
