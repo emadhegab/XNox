@@ -38,10 +38,6 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(launchAtLoginEnabled, forKey: Keys.launchAtLoginEnabled) }
     }
 
-    @Published var autoRefreshXcodesOnOpen: Bool {
-        didSet { defaults.set(autoRefreshXcodesOnOpen, forKey: Keys.autoRefreshXcodesOnOpen) }
-    }
-
     @Published var historyRetentionDays: Int {
         didSet { defaults.set(historyRetentionDays, forKey: Keys.historyRetentionDays) }
     }
@@ -52,17 +48,19 @@ final class AppSettings: ObservableObject {
 
     private let defaults: UserDefaults
 
-    private init(defaults: UserDefaults = .standard) {
+    /// Internal so tests can inject a throwaway `UserDefaults` suite.
+    init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
 
         lastSelectedSection = defaults.string(forKey: Keys.lastSelectedSection) ?? AppSection.dashboard.rawValue
-        defaultSectionOnLaunch = defaults.string(forKey: Keys.defaultSectionOnLaunch) ?? AppSection.dashboard.rawValue
+        // Installs that persisted a removed section (e.g. "xcodes") fall back to the dashboard.
+        let persistedDefault = defaults.string(forKey: Keys.defaultSectionOnLaunch) ?? AppSection.dashboard.rawValue
+        defaultSectionOnLaunch = AppSection(rawValue: persistedDefault) == nil ? AppSection.dashboard.rawValue : persistedDefault
         reopenLastSectionOnLaunch = defaults.object(forKey: Keys.reopenLastSectionOnLaunch) as? Bool ?? true
 
         let launchAtLoginDefault = LaunchAtLoginManager.isEnabled
         launchAtLoginEnabled = defaults.object(forKey: Keys.launchAtLoginEnabled) as? Bool ?? launchAtLoginDefault
 
-        autoRefreshXcodesOnOpen = defaults.object(forKey: Keys.autoRefreshXcodesOnOpen) as? Bool ?? true
         historyRetentionDays = defaults.object(forKey: Keys.historyRetentionDays) as? Int ?? 30
         confirmDestructiveActions = defaults.object(forKey: Keys.confirmDestructiveActions) as? Bool ?? true
     }
@@ -77,7 +75,6 @@ final class AppSettings: ObservableObject {
         persistLastSelectedSection(AppSection.dashboard.rawValue)
         defaultSectionOnLaunch = AppSection.dashboard.rawValue
         reopenLastSectionOnLaunch = true
-        autoRefreshXcodesOnOpen = true
         historyRetentionDays = 30
         confirmDestructiveActions = true
         defaults.set(AppAppearanceMode.system.rawValue, forKey: Keys.appearanceMode)
@@ -89,7 +86,6 @@ enum AppSettingsKeys {
     static let defaultSectionOnLaunch = "settings.defaultSectionOnLaunch"
     static let reopenLastSectionOnLaunch = "settings.reopenLastSectionOnLaunch"
     static let launchAtLoginEnabled = "settings.launchAtLoginEnabled"
-    static let autoRefreshXcodesOnOpen = "settings.autoRefreshXcodesOnOpen"
     static let historyRetentionDays = "settings.historyRetentionDays"
     static let confirmDestructiveActions = "settings.confirmDestructiveActions"
     static let appearanceMode = "settings.appearanceMode"
@@ -100,7 +96,6 @@ private enum Keys {
     static let defaultSectionOnLaunch = AppSettingsKeys.defaultSectionOnLaunch
     static let reopenLastSectionOnLaunch = AppSettingsKeys.reopenLastSectionOnLaunch
     static let launchAtLoginEnabled = AppSettingsKeys.launchAtLoginEnabled
-    static let autoRefreshXcodesOnOpen = AppSettingsKeys.autoRefreshXcodesOnOpen
     static let historyRetentionDays = AppSettingsKeys.historyRetentionDays
     static let confirmDestructiveActions = AppSettingsKeys.confirmDestructiveActions
     static let appearanceMode = AppSettingsKeys.appearanceMode

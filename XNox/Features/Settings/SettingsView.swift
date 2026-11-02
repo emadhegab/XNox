@@ -66,8 +66,6 @@ struct SettingsView: View {
             .pickerStyle(.menu)
             .disabled(settings.reopenLastSectionOnLaunch)
 
-            Toggle("Auto refresh Xcodes list when opening section", isOn: $settings.autoRefreshXcodesOnOpen)
-
             Text("Default section applies when \"Reopen last section\" is disabled.")
                 .font(XNoxTypography.caption)
                 .foregroundStyle(XNoxPalette.textSecondary)

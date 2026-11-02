@@ -29,12 +29,6 @@ struct LocalToolchainManager: ToolchainManaging {
         let versionOutput: String?
 
         switch tool {
-        case .xcodes:
-            if let path {
-                versionOutput = await commandOutput(path, ["version"])
-            } else {
-                versionOutput = nil
-            }
         case .fastlane:
             if let path {
                 versionOutput = await commandOutput(
@@ -202,8 +196,6 @@ struct LocalToolchainManager: ToolchainManaging {
         }
 
         switch tool {
-        case .xcodes:
-            return matches.first
         case .fastlane:
             return matches.last
         }
@@ -220,8 +212,6 @@ struct LocalToolchainManager: ToolchainManaging {
 
     private func minimumVersion(for tool: DevTool) -> String {
         switch tool {
-        case .xcodes:
-            return "1.6.0"
         case .fastlane:
             return "2.232.0"
         }
@@ -330,7 +320,7 @@ struct LocalToolchainManager: ToolchainManaging {
             }
         }
 
-        // Fallback for pinned or tap-specific installs like xcodes@1.6.1.
+        // Fallback for pinned or tap-specific installs.
         return await latestHomebrewStableVersion(for: tool)
     }
 
@@ -436,11 +426,6 @@ struct LocalToolchainManager: ToolchainManaging {
 
         switch installMethod {
         case .homebrew:
-            if tool == .xcodes,
-               let installedBrewFormula,
-               installedBrewFormula != tool.brewFormulaName {
-                return "brew uninstall \(installedBrewFormula) && brew install \(tool.brewInfoIdentifier)"
-            }
             return tool.updateCommand
         case .bundler:
             return "bundle update \(tool.rawValue)"
@@ -476,16 +461,6 @@ struct LocalToolchainManager: ToolchainManaging {
 
         if installMethod == .unknown {
             return "Installed from an unmanaged path. Update checks are automatic for Homebrew, Bundler-shim, and gem installs."
-        }
-
-        if installMethod == .homebrew,
-           tool == .xcodes,
-           let installedBrewFormula,
-           installedBrewFormula != tool.brewFormulaName,
-           let latestAvailableVersion,
-           let parsedVersion,
-           isVersion(latestAvailableVersion, greaterThan: parsedVersion) {
-            return "Installed as \(installedBrewFormula). Upgrade requires switching back to \(tool.brewInfoIdentifier)."
         }
 
         if let latestAvailableVersion, let parsedVersion, isVersion(latestAvailableVersion, greaterThan: parsedVersion) {

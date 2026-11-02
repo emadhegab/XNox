@@ -2,7 +2,6 @@ import Foundation
 
 enum AppSection: String, CaseIterable, Hashable {
     case dashboard
-    case xcodes
     case simulator
     case storage
     case signing
@@ -14,8 +13,6 @@ enum AppSection: String, CaseIterable, Hashable {
         switch self {
         case .dashboard:
             return "Dashboard"
-        case .xcodes:
-            return "Xcodes"
         case .simulator:
             return "Simulator"
         case .storage:
@@ -35,8 +32,6 @@ enum AppSection: String, CaseIterable, Hashable {
         switch self {
         case .dashboard:
             return "rectangle.3.group.bubble.left"
-        case .xcodes:
-            return "hammer"
         case .simulator:
             return "iphone.gen3"
         case .storage:

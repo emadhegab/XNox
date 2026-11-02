@@ -67,8 +67,6 @@ struct AppRootView: View {
         switch section {
         case .dashboard:
             DashboardView()
-        case .xcodes:
-            XcodeManagerView()
         case .simulator:
             SimulatorView()
         case .storage:

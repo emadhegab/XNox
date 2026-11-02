@@ -29,7 +29,6 @@ struct XNoxApp: App {
             AppRootView()
                 .environmentObject(appState)
                 .environmentObject(appState.activityCenter)
-                .environmentObject(appState.xcodeManagerViewModel)
                 .environmentObject(appState.storageViewModel)
                 .environmentObject(settings)
                 .task(id: appearanceModeRawValue) {

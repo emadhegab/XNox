@@ -8,7 +8,6 @@ final class AppState: ObservableObject {
     @Published var isSettingsModalPresented = false
 
     let activityCenter: GlobalActivityCenter
-    let xcodeManagerViewModel: XcodeManagerViewModel
     let storageViewModel: StorageViewModel
     let settings: AppSettings
 
@@ -19,7 +18,6 @@ final class AppState: ObservableObject {
         let resolvedSettings = settings ?? .shared
         let sharedActivityCenter = activityCenter ?? GlobalActivityCenter()
         self.activityCenter = sharedActivityCenter
-        self.xcodeManagerViewModel = XcodeManagerViewModel(activityCenter: sharedActivityCenter)
         self.storageViewModel = StorageViewModel(activityCenter: sharedActivityCenter)
         self.settings = resolvedSettings
 
