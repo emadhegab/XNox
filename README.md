@@ -13,14 +13,12 @@ A free, open-source macOS app for iOS developers. It finds the disk space Xcode 
 - **Simulators** — create, boot, erase, rename, and delete simulators; set locale and status bar; open deep links; add photos and videos.
 - **History** — a log of every delete and erase you ran, with the space freed.
 
-## Screenshot
-
-<!-- screenshot: add docs/screenshot.png -->
+<!-- screenshot: add docs/screenshot.png under a "## Screenshot" heading -->
 
 ## Requirements
 
 - macOS 14 (Sonoma) or later
-- Xcode 16 or later, installed in `/Applications`
+- Xcode 26 or later, installed in `/Applications`
 
 ## Install (build from source)
 

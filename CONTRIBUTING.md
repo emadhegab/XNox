@@ -4,7 +4,7 @@ Thanks for helping. XNox deletes files and erases simulators, so changes are rev
 
 ## Build and test
 
-You need macOS 14+ and Xcode 16+. No Apple Developer account is needed.
+You need macOS 14+ and Xcode 26+. No Apple Developer account is needed.
 
 ```sh
 git clone https://github.com/emadhegab/XNox.git

@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Only the latest `main` (2.0.0) is supported.
+Only the latest `main` is supported.
 
 ## Reporting a vulnerability
 

@@ -28,7 +28,7 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 ### Removed
 
 - Licensing and premium gating. All features are free.
-- Sparkle updates and Firebase. XNox makes no network calls.
+- Sparkle updates and the unused Firebase SDK from 1.x. XNox makes no network calls.
 - The Xcode version manager.
 - Signing and Devices.
 - The Dashboard and toolchain doctor.
