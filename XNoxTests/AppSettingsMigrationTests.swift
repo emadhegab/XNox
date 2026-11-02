@@ -2,16 +2,16 @@ import Foundation
 import Testing
 @testable import XNox
 
-/// Covers installs that persisted the removed "xcodes" section.
+/// Covers installs that persisted the removed "xcodes", "signing" and "devices" sections.
 @MainActor
 struct AppSettingsMigrationTests {
-    @Test
-    func removedSectionFallsBackToDashboard() {
+    @Test(arguments: ["xcodes", "signing", "devices"])
+    func removedSectionFallsBackToDashboard(removed: String) {
         let suite = "XNoxTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
-        defaults.set("xcodes", forKey: AppSettingsKeys.defaultSectionOnLaunch)
-        defaults.set("xcodes", forKey: AppSettingsKeys.lastSelectedSection)
+        defaults.set(removed, forKey: AppSettingsKeys.defaultSectionOnLaunch)
+        defaults.set(removed, forKey: AppSettingsKeys.lastSelectedSection)
         defaults.set(true, forKey: AppSettingsKeys.reopenLastSectionOnLaunch)
 
         let settings = AppSettings(defaults: defaults)
