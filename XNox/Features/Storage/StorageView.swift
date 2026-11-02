@@ -49,7 +49,7 @@ struct StorageView: View {
                 pendingDeleteLocationID = nil
             }
         } message: { snapshot in
-            Text("This removes all contents in \(snapshot.location.pathLabel).")
+            Text(StorageConfirmMessage.location(pathLabel: snapshot.location.pathLabel, bytes: snapshot.bytes))
         }
         .alert("Delete all managed iOS storage?", isPresented: $isDeleteAllConfirmationPresented) {
             Button("Delete All", role: .destructive) {
@@ -59,7 +59,10 @@ struct StorageView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This clears all listed folders and may remove simulator app data.")
+            Text(StorageConfirmMessage.deleteAll(
+                locations: viewModel.snapshots.filter(\.exists).map { ($0.location.pathLabel, $0.bytes) },
+                totalBytes: viewModel.totalKnownBytes
+            ))
         }
         .sheet(item: $browsingSnapshot) { snapshot in
             StorageLocationBrowserView(
