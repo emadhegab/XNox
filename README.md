@@ -53,6 +53,12 @@ XNox needs to read and delete files under `~/Library/Developer` and to run `xcru
 
 XNox makes no network calls after the rebuild is finished. No analytics, no accounts, no license checks.
 
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [Changelog](CHANGELOG.md)
+- [Security policy](SECURITY.md)
+
 ## Contributing
 
 Open `XNox.xcodeproj` in Xcode, or use `make build` / `make test`. To sign with your own team, copy `Local.xcconfig.example` to `Local.xcconfig`. Pull requests are welcome; use [Conventional Commits](https://www.conventionalcommits.org) for commit messages.
