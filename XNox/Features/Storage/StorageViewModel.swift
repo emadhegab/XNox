@@ -365,15 +365,21 @@ final class StorageViewModel: ObservableObject {
             let reclaimedBytes = try await Task.detached(priority: .userInitiated) { () -> Int64 in
                 let fileManager = FileManager.default
                 let targetURL = Self.absoluteURL(for: location, homeDirectory: homeDirectory)
-                return try Self.clearContents(at: targetURL, fileManager: fileManager, deletionGuard: deletionGuard) { completed, total in
-                    Task { @MainActor [weak self] in
-                        self?.deletionProgress = StorageDeletionProgress(
-                            label: "Cleaning \(location.title)",
-                            completedUnitCount: completed,
-                            totalUnitCount: max(total, 1)
-                        )
+                var freed: Int64 = 0
+                do {
+                    try Self.clearContents(at: targetURL, fileManager: fileManager, deletionGuard: deletionGuard, freed: &freed) { completed, total in
+                        Task { @MainActor [weak self] in
+                            self?.deletionProgress = StorageDeletionProgress(
+                                label: "Cleaning \(location.title)",
+                                completedUnitCount: completed,
+                                totalUnitCount: max(total, 1)
+                            )
+                        }
                     }
+                } catch {
+                    throw StorageDeleteFailure(freedBytes: freed, underlying: error)
                 }
+                return freed
             }.value
 
             statusMessage = "Cleaned \(location.title). Freed approximately \(Self.byteString(from: reclaimedBytes))."
@@ -390,7 +396,7 @@ final class StorageViewModel: ObservableObject {
                 exitCode: 0
             )
         } catch {
-            statusMessage = "Failed to clean \(location.title): \(error.localizedDescription)"
+            statusMessage = StorageDeleteFailure.unwrap(error).summary("clean \(location.title)", cancelled: Task.isCancelled)
             historyRecorder.complete(
                 id: historyID,
                 status: .failed,
@@ -439,7 +445,11 @@ final class StorageViewModel: ObservableObject {
                 let totalLocations = existingLocations.count
                 for (index, location) in existingLocations.enumerated() {
                     let url = Self.absoluteURL(for: location, homeDirectory: homeDirectory)
-                    totalReclaimedBytes += try Self.clearContents(at: url, fileManager: fileManager, deletionGuard: deletionGuard)
+                    do {
+                        try Self.clearContents(at: url, fileManager: fileManager, deletionGuard: deletionGuard, freed: &totalReclaimedBytes)
+                    } catch {
+                        throw StorageDeleteFailure(freedBytes: totalReclaimedBytes, underlying: error)
+                    }
                     let completed = index + 1
                     Task { @MainActor [weak self] in
                         self?.deletionProgress = StorageDeletionProgress(
@@ -463,7 +473,7 @@ final class StorageViewModel: ObservableObject {
                 exitCode: 0
             )
         } catch {
-            statusMessage = "Failed to clean all storage locations: \(error.localizedDescription)"
+            statusMessage = StorageDeleteFailure.unwrap(error).summary("clean all storage locations", cancelled: Task.isCancelled)
             historyRecorder.complete(
                 id: historyID,
                 status: .failed,
@@ -851,19 +861,21 @@ final class StorageViewModel: ObservableObject {
         at url: URL,
         fileManager: FileManager,
         deletionGuard: DeletionGuard,
+        freed: inout Int64,
         onProgress: (@Sendable (_ completed: Int, _ total: Int) -> Void)? = nil
-    ) throws -> Int64 {
+    ) throws {
         var isDirectory: ObjCBool = false
         guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
             onProgress?(1, 1)
-            return 0
+            return
         }
 
         if !isDirectory.boolValue {
-            let reclaimedBytes = fileSize(at: url)
+            let size = fileSize(at: url)
             try StorageShell.removeItem(at: url, guard: deletionGuard)
+            freed += size
             onProgress?(1, 1)
-            return reclaimedBytes
+            return
         }
 
         let children = try fileManager.contentsOfDirectory(
@@ -872,18 +884,17 @@ final class StorageViewModel: ObservableObject {
             options: []
         )
 
-        var reclaimedBytes: Int64 = 0
         let totalChildren = max(children.count, 1)
         if children.isEmpty {
             onProgress?(1, 1)
         }
 
         for (index, child) in children.enumerated() {
-            reclaimedBytes += (try? StorageShell.allocatedSize(at: child)) ?? directorySize(at: child, fileManager: fileManager)
+            let size = (try? StorageShell.allocatedSize(at: child)) ?? directorySize(at: child, fileManager: fileManager)
             try StorageShell.removeItem(at: child, guard: deletionGuard)
+            freed += size
             onProgress?(index + 1, totalChildren)
         }
-        return reclaimedBytes
     }
 
     nonisolated private static func directorySize(at url: URL, fileManager: FileManager) -> Int64 {

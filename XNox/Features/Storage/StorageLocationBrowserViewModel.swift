@@ -107,6 +107,7 @@ final class StorageLocationBrowserViewModel: ObservableObject {
     let basePath: String
 
     private let baseURL: URL
+    private let home: URL
     private let historyRecorder: any OperationHistoryRecording
     private var selectionAnchorItemID: String?
     nonisolated private static let coreSimulatorDevicesLocationID = "core-simulator-devices"
@@ -121,8 +122,10 @@ final class StorageLocationBrowserViewModel: ObservableObject {
         locationID: String,
         basePath: String,
         initialItems: [StorageLocationBrowserItem] = [],
-        historyRecorder: (any OperationHistoryRecording)? = nil
+        historyRecorder: (any OperationHistoryRecording)? = nil,
+        home: URL = FileManager.default.homeDirectoryForCurrentUser
     ) {
+        self.home = home
         self.locationTitle = locationTitle
         self.locationID = locationID
         self.basePath = basePath
@@ -279,16 +282,22 @@ final class StorageLocationBrowserViewModel: ObservableObject {
             summary: "Deleting \(selectedItems.count) item(s) from \(locationTitle)."
         )
 
-        let deletionGuard = DeletionGuard.storage(home: FileManager.default.homeDirectoryForCurrentUser)
+        let deletionGuard = DeletionGuard.storage(home: home)
 
         do {
             let deletionResult = try await Task.detached(priority: .userInitiated) { () throws -> Int in
                 var deletedCount = 0
+                var freed: Int64 = 0
 
                 for (index, item) in selectedItems.enumerated() {
                     let itemURL = URL(fileURLWithPath: item.absolutePath)
-                    try StorageShell.removeItem(at: itemURL, guard: deletionGuard)
+                    do {
+                        try StorageShell.removeItem(at: itemURL, guard: deletionGuard)
+                    } catch {
+                        throw StorageDeleteFailure(freedBytes: freed, underlying: error)
+                    }
                     deletedCount += 1
+                    freed += item.sizeBytes
                     Task { @MainActor [weak self] in
                         self?.deletionProgress = StorageBrowserDeletionProgress(
                             completedUnitCount: index + 1,
@@ -321,7 +330,7 @@ final class StorageLocationBrowserViewModel: ObservableObject {
                 reclaimedBytes: expectedReclaimedBytes
             )
         } catch {
-            statusMessage = "Failed deleting selected items: \(error.localizedDescription)"
+            statusMessage = StorageDeleteFailure.unwrap(error).summary("delete selected items", cancelled: Task.isCancelled)
             historyRecorder.complete(
                 id: historyID,
                 status: .failed,

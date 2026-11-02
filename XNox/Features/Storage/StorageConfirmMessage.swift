@@ -31,3 +31,20 @@ nonisolated enum StorageConfirmMessage {
         StorageViewModel.byteString(from: bytes)
     }
 }
+
+/// A Storage delete that stopped partway: keeps the bytes already freed so history can say how far it got.
+nonisolated struct StorageDeleteFailure: Error {
+    let freedBytes: Int64
+    let underlying: any Error
+
+    /// "Failed to <what>: freed X before failing: <error>"; a cancelled task reads "cancelled".
+    func summary(_ what: String, cancelled: Bool) -> String {
+        let reason = (cancelled || underlying is CancellationError) ? "cancelled" : underlying.localizedDescription
+        return "Failed to \(what): freed \(StorageViewModel.byteString(from: freedBytes)) before failing: \(reason)"
+    }
+
+    /// Wraps any error caught outside the delete loop (nothing freed).
+    static func unwrap(_ error: any Error) -> StorageDeleteFailure {
+        (error as? StorageDeleteFailure) ?? StorageDeleteFailure(freedBytes: 0, underlying: error)
+    }
+}
