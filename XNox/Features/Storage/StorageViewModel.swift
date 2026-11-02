@@ -521,7 +521,7 @@ final class StorageViewModel: ObservableObject {
         locationMutationRevisionByID[locationID, default: 0] += 1
     }
 
-    nonisolated private static var defaultLocations: [StorageLocation] {
+    nonisolated static var defaultLocations: [StorageLocation] {
         [
             StorageLocation(
                 id: "derived-data",
