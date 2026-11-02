@@ -42,10 +42,6 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(historyRetentionDays, forKey: Keys.historyRetentionDays) }
     }
 
-    @Published var confirmDestructiveActions: Bool {
-        didSet { defaults.set(confirmDestructiveActions, forKey: Keys.confirmDestructiveActions) }
-    }
-
     private let defaults: UserDefaults
 
     /// Internal so tests can inject a throwaway `UserDefaults` suite.
@@ -62,7 +58,6 @@ final class AppSettings: ObservableObject {
         launchAtLoginEnabled = defaults.object(forKey: Keys.launchAtLoginEnabled) as? Bool ?? launchAtLoginDefault
 
         historyRetentionDays = defaults.object(forKey: Keys.historyRetentionDays) as? Int ?? 30
-        confirmDestructiveActions = defaults.object(forKey: Keys.confirmDestructiveActions) as? Bool ?? true
     }
 
     func persistLastSelectedSection(_ rawValue: String) {
@@ -76,7 +71,6 @@ final class AppSettings: ObservableObject {
         defaultSectionOnLaunch = AppSection.storage.rawValue
         reopenLastSectionOnLaunch = true
         historyRetentionDays = 30
-        confirmDestructiveActions = true
         defaults.set(AppAppearanceMode.system.rawValue, forKey: Keys.appearanceMode)
     }
 }
@@ -87,7 +81,6 @@ enum AppSettingsKeys {
     static let reopenLastSectionOnLaunch = "settings.reopenLastSectionOnLaunch"
     static let launchAtLoginEnabled = "settings.launchAtLoginEnabled"
     static let historyRetentionDays = "settings.historyRetentionDays"
-    static let confirmDestructiveActions = "settings.confirmDestructiveActions"
     static let appearanceMode = "settings.appearanceMode"
 }
 
@@ -97,6 +90,5 @@ private enum Keys {
     static let reopenLastSectionOnLaunch = AppSettingsKeys.reopenLastSectionOnLaunch
     static let launchAtLoginEnabled = AppSettingsKeys.launchAtLoginEnabled
     static let historyRetentionDays = AppSettingsKeys.historyRetentionDays
-    static let confirmDestructiveActions = AppSettingsKeys.confirmDestructiveActions
     static let appearanceMode = AppSettingsKeys.appearanceMode
 }
