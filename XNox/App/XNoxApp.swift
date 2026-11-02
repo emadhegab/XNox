@@ -31,7 +31,6 @@ struct XNoxApp: App {
                 .environmentObject(appState.activityCenter)
                 .environmentObject(appState.xcodeManagerViewModel)
                 .environmentObject(appState.storageViewModel)
-                .environmentObject(appState.updateManager)
                 .environmentObject(settings)
                 .task(id: appearanceModeRawValue) {
                     applyAppAppearance(currentAppearanceMode)
@@ -114,13 +113,6 @@ private struct XNoxAppCommands: Commands {
     @ObservedObject var appState: AppState
 
     var body: some Commands {
-        CommandGroup(after: .appInfo) {
-            Button("Check for Updates…") {
-                appState.updateManager.checkForUpdates()
-            }
-            .disabled(!appState.updateManager.canCheckForUpdates)
-        }
-
         CommandGroup(replacing: .appSettings) {
             Button("Settings...") {
                 NSApp.activate(ignoringOtherApps: true)

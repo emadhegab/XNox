@@ -10,20 +10,17 @@ final class AppState: ObservableObject {
     let activityCenter: GlobalActivityCenter
     let xcodeManagerViewModel: XcodeManagerViewModel
     let storageViewModel: StorageViewModel
-    let updateManager: AppUpdateManager
     let settings: AppSettings
 
     init(
         activityCenter: GlobalActivityCenter? = nil,
-        settings: AppSettings? = nil,
-        updateManager: AppUpdateManager? = nil
+        settings: AppSettings? = nil
     ) {
         let resolvedSettings = settings ?? .shared
         let sharedActivityCenter = activityCenter ?? GlobalActivityCenter()
         self.activityCenter = sharedActivityCenter
         self.xcodeManagerViewModel = XcodeManagerViewModel(activityCenter: sharedActivityCenter)
         self.storageViewModel = StorageViewModel(activityCenter: sharedActivityCenter)
-        self.updateManager = updateManager ?? AppUpdateManager()
         self.settings = resolvedSettings
 
         if resolvedSettings.reopenLastSectionOnLaunch,

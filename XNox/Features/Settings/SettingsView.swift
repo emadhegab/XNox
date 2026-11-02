@@ -9,7 +9,6 @@ struct SettingsView: View {
     let presentation: Presentation
 
     @EnvironmentObject private var settings: AppSettings
-    @EnvironmentObject private var updateManager: AppUpdateManager
     @AppStorage(AppSettingsKeys.appearanceMode) private var appearanceModeRawValue = AppAppearanceMode.system.rawValue
 
     @State private var launchAtLoginError: String?
@@ -23,12 +22,11 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: XNoxTheme.cardSpacing) {
                 SectionHeaderView(
                     title: "Settings",
-                    subtitle: "Control startup behavior, safety rails, update checks, and app appearance defaults."
+                    subtitle: "Control startup behavior, safety rails, and app appearance defaults."
                 )
 
                 startupSection
                 appearanceSection
-                updatesSection
                 operationsSection
 
                 if let launchAtLoginError {
@@ -91,29 +89,6 @@ struct SettingsView: View {
             }
 
             Toggle("Confirm destructive actions before running", isOn: $settings.confirmDestructiveActions)
-        }
-        .cardSurface()
-    }
-
-    private var updatesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Updates")
-                .font(XNoxTypography.cardTitle)
-                .foregroundStyle(XNoxPalette.textPrimary)
-
-            Toggle(
-                "Automatically check for updates",
-                isOn: Binding(
-                    get: { updateManager.automaticallyChecksForUpdates },
-                    set: { updateManager.automaticallyChecksForUpdates = $0 }
-                )
-            )
-
-            Button("Check for Updates…") {
-                updateManager.checkForUpdates()
-            }
-            .xNoxSecondaryButton()
-            .disabled(!updateManager.canCheckForUpdates)
         }
         .cardSurface()
     }
