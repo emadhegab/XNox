@@ -3,7 +3,7 @@ import Foundation
 final class ProcessCommandExecutor: CommandExecuting {
     private let allowlistedExecutables: Set<String>
 
-    init(allowlistedExecutables: Set<String> = ["fastlane", "xcode-select", "xcrun"]) {
+    init(allowlistedExecutables: Set<String> = ["xcode-select", "xcrun"]) {
         self.allowlistedExecutables = allowlistedExecutables
     }
 
