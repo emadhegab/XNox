@@ -70,7 +70,8 @@ struct StorageDeleteHistoryTests {
         await vm.delete(locationID: "docs")
 
         #expect(recorder.only?.status == .failed)
-        #expect(recorder.only?.summary.contains("before failing") == true)
+        #expect(recorder.only?.summary.hasPrefix("Failed to") == true)
+        #expect(recorder.only?.summary.contains("freed") == false)
         #expect(FileManager.default.fileExists(atPath: f.outside.appendingPathComponent("keep.bin").path))
     }
 

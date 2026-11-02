@@ -387,7 +387,7 @@ final class StorageViewModel: ObservableObject {
                 exitCode: 0
             )
         } catch {
-            statusMessage = StorageDeleteFailure.unwrap(error).summary("clean \(location.title)", cancelled: Task.isCancelled)
+            statusMessage = StorageDeleteFailure.unwrap(error).summary("clean \(location.title)")
             historyRecorder.complete(
                 id: historyID,
                 status: .failed,
@@ -464,7 +464,7 @@ final class StorageViewModel: ObservableObject {
                 exitCode: 0
             )
         } catch {
-            statusMessage = StorageDeleteFailure.unwrap(error).summary("clean all storage locations", cancelled: Task.isCancelled)
+            statusMessage = StorageDeleteFailure.unwrap(error).summary("clean all storage locations")
             historyRecorder.complete(
                 id: historyID,
                 status: .failed,
