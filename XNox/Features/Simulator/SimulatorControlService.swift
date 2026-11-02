@@ -71,6 +71,7 @@ actor SimulatorControlService {
     }
 
     func bootSimulator(udid: String) throws {
+        try Self.validateUDID(udid)
         do {
             _ = try runSimctl(["boot", udid], timeoutSeconds: 90)
         } catch let error as CommandError {
@@ -89,6 +90,7 @@ actor SimulatorControlService {
     }
 
     func eraseSimulator(udid: String) throws {
+        try Self.validateUDID(udid)
         var eraseError: Error?
 
         // Erase can fail while simulator is transitioning states; retry with shutdown each cycle.
@@ -122,15 +124,18 @@ actor SimulatorControlService {
     }
 
     func deleteSimulator(udid: String) throws {
+        try Self.validateUDID(udid)
         _ = try? runSimctl(["shutdown", udid], timeoutSeconds: 90)
         _ = try runSimctl(["delete", udid], timeoutSeconds: 120)
     }
 
     func renameSimulator(udid: String, name: String) throws {
+        try Self.validateUDID(udid)
         _ = try runSimctl(["rename", udid, name], timeoutSeconds: 60)
     }
 
     func setLocale(udid: String, localeIdentifier: String) throws {
+        try Self.validateUDID(udid)
         let normalizedLocale = localeIdentifier
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "-", with: "_")
@@ -167,10 +172,12 @@ actor SimulatorControlService {
     }
 
     func openURL(udid: String, rawURL: String) throws {
+        try Self.validateUDID(udid)
         _ = try runSimctl(["openurl", udid, rawURL])
     }
 
     func addMedia(udid: String, filePaths: [String]) throws -> Int {
+        try Self.validateUDID(udid)
         guard !filePaths.isEmpty else {
             throw SimulatorControlError.invalidInput("Choose at least one file first.")
         }
@@ -213,6 +220,7 @@ actor SimulatorControlService {
     }
 
     func overrideStatusBar(udid: String, config: SimulatorStatusBarOverrideConfig) throws {
+        try Self.validateUDID(udid)
         let normalizedBatteryLevel = min(max(config.batteryLevel, 0), 100)
         let normalizedNetworkArgument = simctlDataNetworkArgument(for: config.network)
         // "charged" in simulator can still display as charging on some runtimes.
@@ -291,6 +299,7 @@ actor SimulatorControlService {
     }
 
     func clearStatusBar(udid: String) throws {
+        try Self.validateUDID(udid)
         _ = try runSimctl(["status_bar", udid, "clear"])
     }
 
@@ -369,6 +378,14 @@ actor SimulatorControlService {
 
         let fallbackOutput = try runSimctl(["list", "devicetypes"])
         return SimctlParser.parseDeviceTypesFromPlainList(fallbackOutput)
+    }
+
+    /// Rejects anything that is not a UUID before it reaches `simctl`, so a malformed
+    /// value can never be interpreted as an option or a device specifier like `all`.
+    static func validateUDID(_ udid: String) throws {
+        guard UUID(uuidString: udid) != nil else {
+            throw SimulatorControlError.invalidInput("Invalid simulator identifier: \(udid)")
+        }
     }
 
     private func runSimctl(_ arguments: [String], timeoutSeconds: TimeInterval = 20) throws -> String {
