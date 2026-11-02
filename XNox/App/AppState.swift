@@ -27,7 +27,7 @@ final class AppState: ObservableObject {
         } else if let defaultSection = AppSection(rawValue: resolvedSettings.defaultSectionOnLaunch) {
             self.selectedSection = defaultSection
         } else {
-            self.selectedSection = .dashboard
+            self.selectedSection = .storage
         }
     }
 
