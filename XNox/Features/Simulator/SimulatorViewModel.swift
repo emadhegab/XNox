@@ -1081,6 +1081,8 @@ actor SimulatorControlService {
 
     @Published var statusMessage = "Ready to manage simulators."
     @Published var isRefreshing = false
+    /// Set when `simctl` failed and no devices could be listed; nil after a successful load.
+    @Published private(set) var loadError: String?
     @Published var isPerformingAction = false
 
     var isBusy: Bool {
@@ -1106,6 +1108,12 @@ actor SimulatorControlService {
         configurePreferencePersistence()
     }
 
+    /// Returns the catalog warnings as an error only when they left us with no devices at all.
+    nonisolated static func loadError(warnings: [String], simulatorCount: Int) -> String? {
+        guard simulatorCount == 0, !warnings.isEmpty else { return nil }
+        return warnings.joined(separator: " | ")
+    }
+
     func refresh() async {
         guard !isRefreshing else { return }
         isRefreshing = true
@@ -1116,6 +1124,7 @@ actor SimulatorControlService {
 
         do {
             let warnings = try await reloadCatalog(preferredSelection: selectedSimulatorUDID)
+            loadError = Self.loadError(warnings: warnings, simulatorCount: simulators.count)
             if warnings.isEmpty {
                 if runtimes.isEmpty || deviceTypes.isEmpty {
                     statusMessage = "Loaded \(simulators.count) simulator(s), but runtimes/types are empty. Verify Xcode and simulator runtimes are installed."
@@ -1126,6 +1135,7 @@ actor SimulatorControlService {
                 statusMessage = "Loaded \(simulators.count) simulator(s), \(runtimes.count) runtime(s), \(deviceTypes.count) device type(s). \(warnings.joined(separator: " | "))"
             }
         } catch {
+            loadError = simulators.isEmpty ? error.localizedDescription : nil
             statusMessage = error.localizedDescription
         }
     }

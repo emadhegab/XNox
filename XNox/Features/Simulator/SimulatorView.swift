@@ -124,7 +124,15 @@ struct SimulatorView: View {
                 .disabled(viewModel.isBusy)
             }
 
-            if categoriesWithDevices.isEmpty {
+            if categoriesWithDevices.isEmpty, let loadError = viewModel.loadError {
+                EmptyStateView(
+                    title: "Simulators unavailable",
+                    message: "\(loadError)\nCheck that Xcode is installed and `xcode-select -p` points to it.",
+                    systemImage: "exclamationmark.triangle"
+                )
+                .frame(maxWidth: .infinity)
+                .insetSurface()
+            } else if categoriesWithDevices.isEmpty {
                 Text("No simulator devices detected. Create one from the form below.")
                     .font(XNoxTypography.body)
                     .foregroundStyle(XNoxPalette.textSecondary)
