@@ -2,7 +2,7 @@
 
 A free, open-source macOS app for iOS developers. It finds the disk space Xcode wastes, cleans it safely, and manages your iOS simulators.
 
-> **Status:** being rebuilt as open source. Some old paid features (Xcode manager, signing, device registration) are still in the code and are being removed. See the roadmap in the project notes.
+> **Status:** being rebuilt as open source. Some old paid features (signing and device registration) are still in the code and are being removed. See the roadmap in the project notes.
 
 ## Features
 
