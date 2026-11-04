@@ -4,6 +4,8 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-04
+
 ### Added
 
 - Storage scans more locations: DeviceSupport for watchOS, tvOS, visionOS and macOS, Xcode Previews, CoreSimulator caches and logs, and the caches of Swift Package Manager, CocoaPods, Carthage, Homebrew, npm, Yarn, pnpm, Bun, Gradle, Dart and Flutter, Cargo, pip and the Go build cache.
