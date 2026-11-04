@@ -1,15 +1,13 @@
 # XNox
 
-A free, open-source macOS app for iOS developers. It finds the disk space Xcode wastes, cleans it safely, and manages your iOS simulators.
+A free, open-source macOS app for iOS developers and developers in general. It finds the disk space Xcode and developer tools waste, cleans it safely, and manages your iOS simulators.
 
 ## Features
 
-- **Storage** — scans the folders Xcode fills up, shows their size, and lets you browse and delete what you pick:
-  - `~/Library/Developer/Xcode/DerivedData`
-  - `~/Library/Developer/Xcode/Archives`
-  - `~/Library/Developer/CoreSimulator/Devices`
-  - `~/Library/Developer/Xcode/iOS DeviceSupport`
-  - `~/Library/Caches/com.apple.dt.Xcode`
+- **Storage** — scans the folders developer tools fill up, shows their size, and lets you browse and delete what you pick:
+  - Xcode: `DerivedData`, `Archives`, DeviceSupport for each platform, `UserData/Previews`, `~/Library/Caches/com.apple.dt.Xcode`
+  - Simulators: `CoreSimulator/Devices`, `CoreSimulator/Caches`, `~/Library/Logs/CoreSimulator`
+  - Package caches: Swift Package Manager, CocoaPods, Carthage, Homebrew, npm, Yarn, pnpm, Bun, Gradle, Dart and Flutter, Cargo, pip, Go build
 - **Simulators** — create, boot, erase, rename, and delete simulators; set locale and status bar; open deep links; add photos and videos.
 - **History** — a log of every delete and erase you ran, with the space freed.
 

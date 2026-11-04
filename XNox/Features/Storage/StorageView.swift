@@ -14,13 +14,14 @@ struct StorageView: View {
             VStack(alignment: .leading, spacing: XNoxTheme.cardSpacing) {
                 SectionHeaderView(
                     title: "Storage",
-                    subtitle: "Scan known iOS build folders, inspect contents, and reclaim disk space safely."
+                    subtitle: "Scan known developer caches and build folders, inspect contents, and reclaim disk space safely."
                 )
 
                 summaryCard
 
-                VStack(spacing: 12) {
-                    ForEach(viewModel.snapshots) { snapshot in
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 12)], spacing: 12) {
+                    // Most developers have only some of these tools, so a finished scan hides the missing folders.
+                    ForEach(viewModel.snapshots.filter { !viewModel.hasCompletedScan || $0.exists }) { snapshot in
                         locationCard(for: snapshot)
                     }
                 }
@@ -51,7 +52,7 @@ struct StorageView: View {
         } message: { snapshot in
             Text(StorageConfirmMessage.location(pathLabel: snapshot.location.pathLabel, bytes: snapshot.bytes))
         }
-        .alert("Delete all managed iOS storage?", isPresented: $isDeleteAllConfirmationPresented) {
+        .alert("Delete all managed developer storage?", isPresented: $isDeleteAllConfirmationPresented) {
             Button("Delete All", role: .destructive) {
                 Task {
                     await viewModel.deleteAll()
@@ -60,7 +61,7 @@ struct StorageView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(StorageConfirmMessage.deleteAll(
-                locations: viewModel.snapshots.filter(\.exists).map { ($0.location.pathLabel, $0.bytes) },
+                locations: viewModel.snapshots.filter { $0.exists && $0.bytes > 0 }.map { ($0.location.pathLabel, $0.bytes) },
                 totalBytes: viewModel.totalKnownBytes
             ))
         }
@@ -218,43 +219,62 @@ struct StorageView: View {
     private func locationCard(for snapshot: StorageLocationSnapshot) -> some View {
         let isCelebrating = celebratingLocationID == snapshot.id
 
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Label(snapshot.location.title, systemImage: snapshot.location.systemImage)
-                    .font(XNoxTypography.cardTitle)
-                    .foregroundStyle(XNoxPalette.textPrimary)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top) {
+                Image(systemName: snapshot.location.systemImage)
+                    .font(.system(size: 18))
+                    .foregroundStyle(XNoxPalette.accentStart)
+                    .frame(width: 36, height: 36)
+                    .background(
+                        RoundedRectangle(cornerRadius: XNoxTheme.controlCornerRadius, style: .continuous)
+                            .fill(XNoxPalette.accentStart.opacity(0.12))
+                    )
+                    .accessibilityHidden(true)
                 Spacer()
                 usageView(for: snapshot)
             }
 
-            Text(snapshot.location.subtitle)
-                .font(XNoxTypography.body)
+            Text(snapshot.location.title)
+                .font(XNoxTypography.cardTitle)
+                .foregroundStyle(XNoxPalette.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .help(snapshot.location.subtitle)
+
+            Text(snapshot.location.cleanupNote)
+                .font(XNoxTypography.caption)
                 .foregroundStyle(XNoxPalette.textSecondary)
+                .lineLimit(3)
+
+            Spacer(minLength: 0)
 
             Text(snapshot.location.pathLabel)
                 .font(XNoxTypography.mono)
                 .foregroundStyle(XNoxPalette.textSecondary)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .insetSurface()
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .help(snapshot.location.pathLabel)
 
-            HStack(alignment: .center, spacing: 10) {
-                Text(statusText(for: snapshot))
-                    .font(XNoxTypography.caption)
-                    .foregroundStyle(statusColor(for: snapshot))
+            Text(statusText(for: snapshot))
+                .font(XNoxTypography.caption)
+                .foregroundStyle(statusColor(for: snapshot))
+                .lineLimit(1)
+                .help(statusText(for: snapshot))
 
-                Spacer()
-
+            HStack(spacing: 8) {
                 Button("Browse") {
                     browsingSnapshot = snapshot
                 }
                 .xNoxSecondaryButton()
                 .disabled(!snapshot.exists || viewModel.isLocationRefreshing(snapshot.id))
 
-                Button("Open in Finder") {
+                Button("Finder") {
                     viewModel.openInFinder(locationID: snapshot.id)
                 }
                 .xNoxSecondaryButton()
+                .help("Open in Finder")
+
+                Spacer(minLength: 0)
 
                 Button("Clean") {
                     pendingDeleteLocationID = snapshot.id
@@ -262,13 +282,10 @@ struct StorageView: View {
                 .xNoxSecondaryButton()
                 .disabled(!snapshot.exists || snapshot.bytes == 0 || viewModel.isDeleting || viewModel.isLocationRefreshing(snapshot.id))
             }
-
-            Text(snapshot.location.cleanupNote)
-                .font(XNoxTypography.caption)
-                .foregroundStyle(XNoxPalette.textSecondary)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .cardSurface()
+        .aspectRatio(1, contentMode: .fit)
         .overlay {
             RoundedRectangle(cornerRadius: XNoxTheme.cardCornerRadius, style: .continuous)
                 .fill(Color.green.opacity(isCelebrating ? 0.18 : 0))

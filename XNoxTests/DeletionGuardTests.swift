@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Testing
 @testable import XNox
@@ -31,6 +32,37 @@ struct DeletionGuardTests {
         let grandchild = child.appendingPathComponent("Build/x.o")
         #expect(try f.guardian.validate(child).path == resolved(f.root) + "/App-abc")
         #expect(try f.guardian.validate(grandchild).path == resolved(f.root) + "/App-abc/Build/x.o")
+    }
+
+    @Test func defaultLocationsAreUniqueAndNotNested() {
+        let locations = StorageViewModel.defaultLocations
+        #expect(Set(locations.map(\.id)).count == locations.count)
+        for location in locations {
+            #expect(NSImage(systemSymbolName: location.systemImage, accessibilityDescription: nil) != nil, "\(location.id)")
+        }
+        let paths = locations.map { $0.relativePath + "/" }
+        #expect(Set(paths).count == paths.count)
+        for path in paths {
+            #expect(!path.hasPrefix("/") && !path.contains(".."))
+            #expect(paths.filter { $0.hasPrefix(path) }.count == 1, "\(path) contains another root")
+        }
+    }
+
+    /// Partial roots keep user data out of reach: these siblings hold settings, global tools or logs, not caches.
+    @Test func dataNextToCachesIsRejected() throws {
+        let f = try Fixture(); defer { f.cleanup() }
+        #expect(try f.guardian.validate(f.home.appendingPathComponent(".npm/_cacache/x")).lastPathComponent == "x")
+        for path in [
+            ".npm/_logs/x",
+            ".pub-cache/bin/x",
+            ".gradle/gradle.properties",
+            ".cargo/bin/x",
+            ".m2/repository/x",
+            ".android/avd/x",
+            "Library/org.swift.swiftpm/x",
+        ] {
+            #expect(throws: DeletionGuardError.self) { try f.guardian.validate(f.home.appendingPathComponent(path)) }
+        }
     }
 
     @Test func rootItselfIsRejected() throws {
