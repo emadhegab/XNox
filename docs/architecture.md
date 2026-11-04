@@ -45,13 +45,9 @@ StorageViewModel / StorageLocationBrowserViewModel
   -> ProcessCommandRunner.run("/bin/rm", ["-rf", "--", resolvedPath])
 ```
 
-`DeletionGuard` allows a path only if, after collapsing `..` and resolving symlinks in its parent directories, it is strictly inside one of the five Storage roots under the home folder:
+`DeletionGuard` allows a path only if, after collapsing `..` and resolving symlinks in its parent directories, it is strictly inside one of the Storage roots under the home folder. `StorageViewModel.defaultLocations` lists the roots.
 
-- `Library/Developer/Xcode/DerivedData`
-- `Library/Developer/Xcode/Archives`
-- `Library/Developer/CoreSimulator/Devices`
-- `Library/Developer/Xcode/iOS DeviceSupport`
-- `Library/Caches/com.apple.dt.Xcode`
+A root must hold only data the tool can create again. Folders like `~/.m2/repository` (locally installed artifacts) and `~/.android/avd` (user emulators) are left out for this reason. `~/go/pkg/mod` is left out because its read-only folders make `rm -rf` fail. For `~/.npm`, `~/.pub-cache` and `~/.gradle`, the root is only the cache subfolder.
 
 A root itself is refused. The last path component is not resolved, so deleting a symlink removes the link, not its target. The check and the `rm` are separate steps, so a same-user process could swap a directory for a symlink in between; this is accepted.
 

@@ -4,6 +4,16 @@ All notable changes are listed here. The format follows [Keep a Changelog](https
 
 ## [Unreleased]
 
+### Added
+
+- Storage scans more locations: DeviceSupport for watchOS, tvOS, visionOS and macOS, Xcode Previews, CoreSimulator caches and logs, and the caches of Swift Package Manager, CocoaPods, Carthage, Homebrew, npm, Yarn, pnpm, Bun, Gradle, Dart and Flutter, Cargo, pip and the Go build cache.
+
+### Changed
+
+- Storage shows locations as a grid of square cards, each with its own icon.
+- After a scan, Storage hides folders that do not exist on this Mac.
+- The delete-all confirmation lists only folders that have content.
+
 ## [2.0.0] - 2026-11-02
 
 ### Added

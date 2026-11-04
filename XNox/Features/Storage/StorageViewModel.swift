@@ -2,7 +2,7 @@ import AppKit
 import Combine
 import Foundation
 
-/// A known Xcode folder XNox can scan and clean, with a path relative to the home folder.
+/// A known developer folder XNox can scan and clean, with a path relative to the home folder.
 struct StorageLocation: Identifiable, Hashable, Sendable {
     let id: String
     let title: String
@@ -80,7 +80,7 @@ final class StorageViewModel: ObservableObject {
     @Published private(set) var hasCompletedScan = false
     @Published private(set) var lastCleanupCelebrationEvent: StorageCleanupCelebrationEvent?
     @Published private(set) var deletionProgress: StorageDeletionProgress?
-    @Published var statusMessage = "Ready to scan iOS development storage."
+    @Published var statusMessage = "Ready to scan developer storage."
     @Published var isRefreshing = false
     @Published var isDeleting = false
 
@@ -217,7 +217,7 @@ final class StorageViewModel: ObservableObject {
         guard !isRefreshing else { return }
 
         isRefreshing = true
-        statusMessage = "Scanning iOS development folders..."
+        statusMessage = "Scanning developer folders..."
         let activityID = activityCenter.begin(
             title: "Scanning storage locations",
             detail: "0/\(locations.count)",
@@ -277,7 +277,7 @@ final class StorageViewModel: ObservableObject {
                 scanProgressByLocationID.removeValue(forKey: snapshot.id)
 
                 let scannedCount = locations.count - pendingLocationIDs.count
-                statusMessage = "Scanning iOS development folders (\(scannedCount)/\(locations.count))..."
+                statusMessage = "Scanning developer folders (\(scannedCount)/\(locations.count))..."
                 activityCenter.update(
                     id: activityID,
                     detail: "\(scannedCount)/\(locations.count) • Reclaimable \(Self.byteString(from: liveTotalKnownBytes))"
@@ -412,12 +412,12 @@ final class StorageViewModel: ObservableObject {
             .map(\.location)
 
         guard !existingLocations.isEmpty else {
-            statusMessage = "No iOS storage folders were found on this Mac."
+            statusMessage = "No developer storage folders were found on this Mac."
             return
         }
 
         isDeleting = true
-        statusMessage = "Cleaning all iOS development storage folders..."
+        statusMessage = "Cleaning all developer storage folders..."
         deletionProgress = StorageDeletionProgress(
             label: "Cleaning all storage locations",
             completedUnitCount: 0,
@@ -539,7 +539,7 @@ final class StorageViewModel: ObservableObject {
                 subtitle: "Build intermediates, indexes, and module caches produced by Xcode builds.",
                 relativePath: "Library/Developer/Xcode/DerivedData",
                 cleanupNote: "Safe to clear. Xcode will regenerate these files.",
-                systemImage: "hammer"
+                systemImage: "hammer.fill"
             ),
             StorageLocation(
                 id: "archives",
@@ -547,7 +547,7 @@ final class StorageViewModel: ObservableObject {
                 subtitle: "Archive bundles created for TestFlight and App Store builds.",
                 relativePath: "Library/Developer/Xcode/Archives",
                 cleanupNote: "Delete old archives only if you no longer need to re-export them.",
-                systemImage: "archivebox"
+                systemImage: "archivebox.fill"
             ),
             StorageLocation(
                 id: "core-simulator-devices",
@@ -555,7 +555,7 @@ final class StorageViewModel: ObservableObject {
                 subtitle: "Installed apps, simulator runtimes, and app containers for local testing.",
                 relativePath: "Library/Developer/CoreSimulator/Devices",
                 cleanupNote: "Deleting will remove simulator app data and may reset simulator state.",
-                systemImage: "iphone.gen3"
+                systemImage: "apps.iphone"
             ),
             StorageLocation(
                 id: "device-support",
@@ -563,7 +563,7 @@ final class StorageViewModel: ObservableObject {
                 subtitle: "Symbols and support files generated when connecting physical iOS devices.",
                 relativePath: "Library/Developer/Xcode/iOS DeviceSupport",
                 cleanupNote: "Safe to clear. Files are downloaded again when needed.",
-                systemImage: "externaldrive.connected.to.line.below"
+                systemImage: "iphone.gen3"
             ),
             StorageLocation(
                 id: "xcode-cache",
@@ -571,7 +571,145 @@ final class StorageViewModel: ObservableObject {
                 subtitle: "Global Xcode cache files shared across projects.",
                 relativePath: "Library/Caches/com.apple.dt.Xcode",
                 cleanupNote: "Safe to clear. Startup and indexing may be slower until cache warms.",
-                systemImage: "internaldrive"
+                systemImage: "wrench.and.screwdriver.fill"
+            ),
+        ] + [("watchOS", "applewatch"), ("tvOS", "appletv.fill"), ("visionOS", "visionpro"), ("macOS", "laptopcomputer")].map { platform, symbol in
+            StorageLocation(
+                id: "device-support-\(platform.lowercased())",
+                title: "\(platform) DeviceSupport",
+                subtitle: "Symbols and support files generated when connecting physical \(platform) devices.",
+                relativePath: "Library/Developer/Xcode/\(platform) DeviceSupport",
+                cleanupNote: "Safe to clear. Files are downloaded again when needed.",
+                systemImage: symbol
+            )
+        } + [
+            StorageLocation(
+                id: "xcode-previews",
+                title: "Xcode Previews",
+                subtitle: "Simulator devices and build products created for SwiftUI previews.",
+                relativePath: "Library/Developer/Xcode/UserData/Previews",
+                cleanupNote: "Safe to clear. Close Xcode first. Previews rebuild when next opened.",
+                systemImage: "eye.fill"
+            ),
+            StorageLocation(
+                id: "core-simulator-caches",
+                title: "CoreSimulator Caches",
+                subtitle: "Shared caches the simulator builds for each runtime.",
+                relativePath: "Library/Developer/CoreSimulator/Caches",
+                cleanupNote: "Safe to clear. The next simulator boot is slower.",
+                systemImage: "square.stack.3d.down.right.fill"
+            ),
+            StorageLocation(
+                id: "core-simulator-logs",
+                title: "CoreSimulator Logs",
+                subtitle: "Logs written by simulator devices and services.",
+                relativePath: "Library/Logs/CoreSimulator",
+                cleanupNote: "Safe to clear. Only old logs are lost.",
+                systemImage: "doc.plaintext.fill"
+            ),
+            StorageLocation(
+                id: "swiftpm-cache",
+                title: "SwiftPM Cache",
+                subtitle: "Downloaded package repositories and binary artifacts.",
+                relativePath: "Library/Caches/org.swift.swiftpm",
+                cleanupNote: "Safe to clear. Packages download again on the next resolve.",
+                systemImage: "swift"
+            ),
+            StorageLocation(
+                id: "cocoapods-cache",
+                title: "CocoaPods Cache",
+                subtitle: "Downloaded pods shared across projects.",
+                relativePath: "Library/Caches/CocoaPods",
+                cleanupNote: "Safe to clear. Pods download again on the next install.",
+                systemImage: "cup.and.saucer.fill"
+            ),
+            StorageLocation(
+                id: "carthage-cache",
+                title: "Carthage Cache",
+                subtitle: "Downloaded dependencies and prebuilt binaries.",
+                relativePath: "Library/Caches/org.carthage.CarthageKit",
+                cleanupNote: "Safe to clear. Dependencies download again on the next update.",
+                systemImage: "building.columns.fill"
+            ),
+            StorageLocation(
+                id: "homebrew-cache",
+                title: "Homebrew Cache",
+                subtitle: "Downloaded bottles and source archives.",
+                relativePath: "Library/Caches/Homebrew",
+                cleanupNote: "Safe to clear. Installed formulae keep working.",
+                systemImage: "mug.fill"
+            ),
+            StorageLocation(
+                id: "npm-cache",
+                title: "npm Cache",
+                subtitle: "Downloaded npm packages shared across projects.",
+                relativePath: ".npm/_cacache",
+                cleanupNote: "Safe to clear. Packages download again on the next install.",
+                systemImage: "shippingbox.fill"
+            ),
+            StorageLocation(
+                id: "yarn-cache",
+                title: "Yarn Cache",
+                subtitle: "Downloaded Yarn packages shared across projects.",
+                relativePath: "Library/Caches/Yarn",
+                cleanupNote: "Safe to clear. Packages download again on the next install.",
+                systemImage: "scribble.variable"
+            ),
+            StorageLocation(
+                id: "pnpm-store",
+                title: "pnpm Store",
+                subtitle: "Content-addressable store of pnpm packages.",
+                relativePath: "Library/pnpm/store",
+                cleanupNote: "Safe to clear. Packages download again on the next install.",
+                systemImage: "square.stack.3d.up.fill"
+            ),
+            StorageLocation(
+                id: "bun-cache",
+                title: "Bun Cache",
+                subtitle: "Downloaded Bun packages shared across projects.",
+                relativePath: ".bun/install/cache",
+                cleanupNote: "Safe to clear. Packages download again on the next install.",
+                systemImage: "takeoutbag.and.cup.and.straw.fill"
+            ),
+            StorageLocation(
+                id: "gradle-caches",
+                title: "Gradle Caches",
+                subtitle: "Downloaded dependencies and build caches for Android and JVM projects.",
+                relativePath: ".gradle/caches",
+                cleanupNote: "Safe to clear. Stop Gradle daemons first. The next build is slower.",
+                systemImage: "gearshape.2.fill"
+            ),
+            StorageLocation(
+                id: "pub-cache",
+                title: "Dart and Flutter Packages",
+                subtitle: "Packages downloaded from pub.dev.",
+                relativePath: ".pub-cache/hosted",
+                cleanupNote: "Safe to clear. Run flutter pub get in each project afterwards.",
+                systemImage: "bird.fill"
+            ),
+            StorageLocation(
+                id: "cargo-registry",
+                title: "Cargo Registry",
+                subtitle: "Downloaded Rust crates shared across projects.",
+                relativePath: ".cargo/registry",
+                cleanupNote: "Safe to clear. Crates download again on the next build.",
+                systemImage: "ferry.fill"
+            ),
+            StorageLocation(
+                id: "pip-cache",
+                title: "pip Cache",
+                subtitle: "Downloaded Python packages and built wheels.",
+                relativePath: "Library/Caches/pip",
+                cleanupNote: "Safe to clear. Packages download again on the next install.",
+                systemImage: "lizard.fill"
+            ),
+            StorageLocation(
+                id: "go-build-cache",
+                title: "Go Build Cache",
+                subtitle: "Compiled Go packages reused between builds.",
+                relativePath: "Library/Caches/go-build",
+                cleanupNote: "Safe to clear. The next build is slower.",
+                systemImage: "hare.fill"
             ),
         ]
     }
